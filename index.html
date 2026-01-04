@@ -3,28 +3,45 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Workout Timer v1.2</title>
+  <title>Workout Timer v1.3</title>
   <style>
     :root {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       color-scheme: dark;
+      --bg: #070A0F;
+      --card: rgba(255,255,255,0.06);
+      --card2: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.10);
+      --muted: rgba(255,255,255,0.65);
+      --text: rgba(255,255,255,0.92);
+      --accent: #60A5FA;
+      --danger: #EF4444;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     }
+
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: #0b0c10;
-      color: #e8e8ea;
-      padding: 16px;
-      padding-bottom: calc(16px + env(safe-area-inset-bottom));
+      background: radial-gradient(1200px 700px at 50% -10%, rgba(96,165,250,0.18), transparent 60%),
+                  radial-gradient(900px 600px at 10% 20%, rgba(34,197,94,0.10), transparent 55%),
+                  radial-gradient(900px 600px at 90% 30%, rgba(239,68,68,0.08), transparent 55%),
+                  var(--bg);
+      color: var(--text);
+      padding: 14px;
+      padding-bottom: calc(14px + env(safe-area-inset-bottom));
     }
+
     .app { max-width: 980px; margin: 0 auto; display: grid; gap: 14px; }
-    h1 { font-size: 18px; margin: 0; font-weight: 750; letter-spacing: -0.2px; }
 
     .card {
-      background: #12141b;
-      border: 1px solid #222635;
-      border-radius: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
       padding: 14px;
-      box-shadow: 0 6px 18px rgba(0,0,0,.25);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
     }
 
     .grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px; }
@@ -34,10 +51,10 @@
       width: 100%;
       min-height: 240px;
       resize: vertical;
-      background: #0f1117;
-      color: #e8e8ea;
-      border: 1px solid #23283a;
-      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 14px;
       padding: 12px;
       outline: none;
       line-height: 1.35;
@@ -46,72 +63,105 @@
 
     .row { display:flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
     .row.left { justify-content: flex-start; }
-    .label { font-size: 12px; opacity: .75; text-transform: uppercase; letter-spacing: .06em; }
-    .hint { font-size: 13px; opacity: .82; line-height: 1.45; margin-top: 6px; }
+
+    .pill {
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.28);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: rgba(255,255,255,0.86);
+      font-size: 13px;
+      user-select: none;
+    }
 
     button {
-      background: #1f6feb;
-      color: #fff;
-      border: 0;
+      background: rgba(96,165,250,0.22);
+      color: rgba(255,255,255,0.92);
+      border: 1px solid rgba(96,165,250,0.38);
       padding: 10px 12px;
-      border-radius: 12px;
+      border-radius: 14px;
       cursor: pointer;
       font-weight: 750;
       font-size: 14px;
+      transition: transform 0.06s ease, background 0.15s ease, border-color 0.15s ease;
     }
-    button.secondary { background: #2a2f40; }
-    button.danger { background: #d73a49; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
+    button:active { transform: translateY(1px); }
+    button.secondary {
+      background: rgba(255,255,255,0.10);
+      border-color: rgba(255,255,255,0.14);
+    }
+    button.danger {
+      background: rgba(239,68,68,0.18);
+      border-color: rgba(239,68,68,0.35);
+    }
+    button:disabled { opacity: .45; cursor: not-allowed; }
 
-    .bigTime { font-variant-numeric: tabular-nums; font-size: 54px; font-weight: 900; letter-spacing: -1px; }
-    .desc { font-size: 18px; font-weight: 750; margin-top: 6px; line-height: 1.35; }
-    .sub { opacity: .82; font-size: 13px; margin-top: 6px; }
+    input[type="checkbox"] { transform: translateY(1px) scale(1.05); }
+
+    /* Right panel (workout display) */
+    .desc {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.2px;
+      line-height: 1.28;
+      margin-top: 4px;
+    }
+
+    .bigRow {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    @media (max-width: 520px) { .bigRow { grid-template-columns: 1fr; } }
+
+    .bigBox {
+      background: var(--card2);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 18px;
+      padding: 12px 12px 10px;
+    }
+
+    .bigLabel {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .bigTime {
+      font-variant-numeric: tabular-nums;
+      font-size: 56px;
+      font-weight: 950;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .meta {
+      margin-top: 12px;
+      color: rgba(255,255,255,0.82);
+      font-size: 13px;
+      display:flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
 
     .progressWrap { margin-top: 12px; }
     .bar {
       height: 10px;
       border-radius: 999px;
-      background: #1b1f2b;
+      background: rgba(255,255,255,0.08);
       overflow: hidden;
-      border: 1px solid #262c3f;
+      border: 1px solid rgba(255,255,255,0.10);
     }
-    .fill { height: 100%; width: 0%; background: #1f6feb; }
+    .fill { height: 100%; width: 0%; background: rgba(96,165,250,0.85); }
 
-    .mini { font-size: 13px; opacity: .85; margin-top: 8px; display:flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-
-    .list {
-      max-height: 260px;
-      overflow: auto;
-      border-top: 1px solid #222635;
-      margin-top: 12px;
-      padding-top: 12px;
-    }
-    .seg {
-      display: grid;
-      grid-template-columns: 74px 1fr;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: 12px;
-      border: 1px solid transparent;
-    }
-    .seg.active { border-color: #1f6feb; background: rgba(31,111,235,.12); }
-    .seg .t { font-variant-numeric: tabular-nums; opacity: .9; }
-    .seg .d { opacity: .95; }
-
-    /* Workout Mode (phone-first) */
-    .workoutMode .editorCard { display: none; }
-    .workoutMode .grid { grid-template-columns: 1fr; }
-
-    .workoutMode .desc {
-      font-size: clamp(18px, 3.4vw, 26px);
-      font-weight: 850;
-      letter-spacing: -0.2px;
-    }
-    .workoutMode .bigTime {
-      font-size: clamp(64px, 12vw, 110px);
-      line-height: 1;
-    }
-
+    /* Controls */
     .controlsBig {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -121,8 +171,11 @@
     .controlsBig button {
       padding: 14px 14px;
       font-size: 18px;
-      border-radius: 16px;
+      border-radius: 18px;
+      background: rgba(96,165,250,0.26);
+      border-color: rgba(96,165,250,0.42);
     }
+
     .controlsSmall {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -132,143 +185,198 @@
     .controlsSmall button {
       padding: 12px 12px;
       font-size: 16px;
-      border-radius: 16px;
+      border-radius: 18px;
     }
 
     .toggles {
       display:flex;
       flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 10px;
-      align-items: center;
-    }
-    .toggle {
-      display:flex;
-      gap: 8px;
-      align-items: center;
-      font-size: 13px;
-      opacity: .9;
-      user-select: none;
-    }
-    input[type="checkbox"] { transform: translateY(1px) scale(1.05); }
-
-    .pill {
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: #0f1117;
-      border: 1px solid #23283a;
-    }
-
-    .topActions { display:flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-    @media (max-width: 520px) {
-      .topActions { justify-content: flex-start; }
-      textarea { min-height: 210px; }
-    }
-
-    /* HR panel */
-    .hrCard {
-      margin-top: 12px;
-      background: #0f1117;
-      border: 1px solid #23283a;
-      border-radius: 12px;
-      padding: 12px;
-    }
-    .hrGrid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
       gap: 10px;
       margin-top: 10px;
+      align-items: center;
+      color: rgba(255,255,255,0.84);
+      font-size: 13px;
     }
-    @media (max-width: 520px) { .hrGrid { grid-template-columns: 1fr; } }
-    .hrBig {
+
+    /* Interval list (editor mode only) */
+    .list {
+      max-height: 260px;
+      overflow: auto;
+      border-top: 1px solid rgba(255,255,255,0.10);
+      margin-top: 12px;
+      padding-top: 12px;
+    }
+    .seg {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      background: rgba(0,0,0,0.18);
+    }
+    .seg + .seg { margin-top: 8px; }
+    .seg.active { border-color: rgba(96,165,250,0.60); background: rgba(96,165,250,0.12); }
+    .seg .t { font-variant-numeric: tabular-nums; opacity: .88; }
+    .seg .d { opacity: .96; }
+
+    /* HR zone bar */
+    .zoneWrap {
+      margin-top: 12px;
+      background: rgba(0,0,0,0.26);
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 16px;
+      padding: 10px;
+    }
+    .zoneHeader {
+      display:flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 8px;
+      color: rgba(255,255,255,0.80);
+      font-size: 13px;
+    }
+    .zoneHeader .zname { font-weight: 850; letter-spacing: -0.2px; }
+    .zoneHeader .zrange { font-variant-numeric: tabular-nums; opacity: .80; }
+
+    .zoneBar {
+      position: relative;
+      height: 14px;
+      border-radius: 999px;
+      overflow: hidden;
+      display: flex;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+    }
+    .zseg { height: 100%; }
+    /* zone colors */
+    .z1 { background: #8B949E; }      /* grey */
+    .z2 { background: #7DD3FC; }      /* light blue */
+    .z3 { background: #22C55E; }      /* green */
+    .z4 { background: #F59E0B; }      /* yellow-orange */
+    .z5 { background: #EF4444; }      /* red */
+
+    .zoneMarker {
+      position: absolute;
+      top: -6px;
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 8px solid rgba(255,255,255,0.92);
+      transform: translateX(-6px);
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.45));
+      opacity: 0;
+    }
+    .zoneMarkerLine {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255,255,255,0.88);
+      transform: translateX(-1px);
+      opacity: 0;
+    }
+    .zoneTicks {
+      display:flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      color: rgba(255,255,255,0.55);
+      font-size: 12px;
       font-variant-numeric: tabular-nums;
-      font-size: 34px;
-      font-weight: 900;
-      letter-spacing: -0.5px;
     }
-    .muted { opacity: .8; }
+
+    /* Workout mode: show only what matters */
+    .workoutMode .editorCard { display: none; }
+    .workoutMode .grid { grid-template-columns: 1fr; }
+    .workoutMode .list { display: none; }
+    .workoutMode .desc { font-size: clamp(19px, 3.6vw, 28px); font-weight: 900; }
+    .workoutMode .bigTime { font-size: clamp(72px, 12vw, 118px); }
+    .workoutMode .bigLabel { display: none; } /* no labels in workout mode */
+    .workoutMode .bigBox { padding: 12px; }
+    .workoutMode .toggles { display: none; } /* keep it ultra-clean in workout mode */
+
+    /* Tiny top strip (no title) */
+    .topStrip { display:flex; justify-content: space-between; gap: 10px; align-items:center; }
+    .topStrip .left { display:flex; gap: 10px; align-items:center; }
   </style>
 </head>
 
 <body>
   <div class="app">
-    <div class="row">
-      <h1>Workout Timer <span style="opacity:.75;font-weight:700;">v1.2</span></h1>
-
-      <div class="topActions">
-        <span class="pill toggle" title="Hide editor and show big workout controls">
+    <div class="topStrip">
+      <div class="left">
+        <span class="pill">
           <input type="checkbox" id="modeToggle" />
           Workout mode
         </span>
-        <button id="demoBtn" class="secondary">Use example</button>
+      </div>
+      <div class="left">
+        <button id="hrConnectBtn" class="secondary">HR Connect</button>
+        <button id="hrDisconnectBtn" class="danger" disabled>HR Off</button>
       </div>
     </div>
 
     <div class="grid">
       <div class="card editorCard">
         <div class="row">
-          <div>
-            <div class="label">Workout description</div>
-            <div class="hint">
-              Paste from intervals.icu. Intervals must start with durations like <code>9m20s</code>, <code>15m</code>, <code>30s</code>.
-              Repeat headers like <code>Main set 3x</code> repeat the following interval block.
-            </div>
-          </div>
+          <div class="pill" style="opacity:.9;">Paste workout text (intervals must start with a duration, e.g. <span style="font-family:var(--mono);">9m20s</span>)</div>
           <div class="row left">
             <button id="loadBtn">Load</button>
             <button id="clearBtn" class="danger">Clear</button>
           </div>
         </div>
-        <textarea id="input" placeholder="Paste your workout here..."></textarea>
+        <div style="margin-top:10px;">
+          <textarea id="input" placeholder="Paste your workout here..."></textarea>
+        </div>
       </div>
 
       <div class="card">
-        <div class="label">Now</div>
         <div id="segmentDesc" class="desc">Load a workout to begin.</div>
 
-        <div style="margin-top: 12px;">
-          <div class="label">Countdown to next interval</div>
-          <div id="countdown" class="bigTime">00:00</div>
-          <div class="sub" id="metaLine"></div>
+        <div class="bigRow">
+          <div class="bigBox">
+            <div class="bigLabel">Remaining</div>
+            <div id="countdown" class="bigTime">00:00</div>
+          </div>
+          <div class="bigBox">
+            <div class="bigLabel">BPM</div>
+            <div id="hrBpm" class="bigTime">—</div>
+          </div>
         </div>
 
-        <!-- Heart Rate panel -->
-        <div class="hrCard">
-          <div class="row">
-            <div>
-              <div class="label">Heart rate</div>
-              <div id="hrStatus" class="sub muted" style="margin-top:6px;">Not connected</div>
-            </div>
-            <div class="row left" style="justify-content:flex-end;">
-              <button id="hrConnectBtn" class="">Connect</button>
-              <button id="hrDisconnectBtn" class="danger" disabled>Disconnect</button>
-            </div>
+        <div class="zoneWrap">
+          <div class="zoneHeader">
+            <div class="zname" id="zoneName">—</div>
+            <div class="zrange" id="zoneRange">0–175 bpm</div>
           </div>
+          <div class="zoneBar" id="zoneBar">
+            <!-- widths are set by JS for exact proportions -->
+            <div class="zseg z1" id="z1"></div>
+            <div class="zseg z2" id="z2"></div>
+            <div class="zseg z3" id="z3"></div>
+            <div class="zseg z4" id="z4"></div>
+            <div class="zseg z5" id="z5"></div>
 
-          <div class="hrGrid">
-            <div>
-              <div class="label">BPM</div>
-              <div id="hrBpm" class="hrBig">—</div>
-            </div>
-            <div>
-              <div class="label">RR interval</div>
-              <div id="hrRr" class="hrBig">—</div>
-            </div>
-            <div>
-              <div class="label">Device</div>
-              <div id="hrDevice" class="sub">—</div>
-            </div>
-            <div>
-              <div class="label">Last update</div>
-              <div id="hrUpdated" class="sub">—</div>
-            </div>
+            <div class="zoneMarker" id="zoneMarker"></div>
+            <div class="zoneMarkerLine" id="zoneMarkerLine"></div>
           </div>
+          <div class="zoneTicks">
+            <span>0</span><span>106</span><span>123</span><span>141</span><span>158</span><span>175</span>
+          </div>
+        </div>
 
-          <div class="sub muted" style="margin-top:10px;">
-            Tip: If Connect hangs, ensure the Polar app isn’t actively connected (or enable “2 receiving BLE devices” in the H10 settings).
+        <div class="meta">
+          <div id="metaLeft">Segment —/—</div>
+          <div id="metaRight">Total —</div>
+        </div>
+
+        <div class="progressWrap">
+          <div class="bar"><div id="fill" class="fill"></div></div>
+          <div class="meta" style="margin-top:10px;">
+            <div id="posInfo">Elapsed — • Remaining —</div>
+            <div id="hrStatus" style="color:rgba(255,255,255,0.55);">HR: not connected</div>
           </div>
         </div>
 
@@ -284,18 +392,10 @@
         </div>
 
         <div class="toggles">
-          <label class="toggle"><input type="checkbox" id="beepToggle" checked /> Beep on change</label>
-          <label class="toggle"><input type="checkbox" id="countdownBeepToggle" /> 3-2-1 beeps</label>
-          <label class="toggle"><input type="checkbox" id="vibrateToggle" checked /> Vibrate</label>
-          <label class="toggle"><input type="checkbox" id="wakeLockToggle" /> Keep screen awake</label>
-        </div>
-
-        <div class="progressWrap">
-          <div class="bar"><div id="fill" class="fill"></div></div>
-          <div class="mini">
-            <div id="posInfo">—</div>
-            <div id="totalInfo">—</div>
-          </div>
+          <label class="pill"><input type="checkbox" id="beepToggle" checked /> Beep</label>
+          <label class="pill"><input type="checkbox" id="countdownBeepToggle" /> 3-2-1</label>
+          <label class="pill"><input type="checkbox" id="vibrateToggle" checked /> Vibrate</label>
+          <label class="pill"><input type="checkbox" id="wakeLockToggle" /> Keep awake</label>
         </div>
 
         <div class="list" id="segmentsList"></div>
@@ -306,7 +406,7 @@
 <script>
 (() => {
   /** -------------------- Storage -------------------- **/
-  const STORAGE_KEY = "workout_timer_v1_2";
+  const STORAGE_KEY = "workout_timer_v1_3";
   function saveState(partial) {
     const current = loadState();
     const merged = { ...current, ...partial };
@@ -324,9 +424,7 @@
   /** -------------------- Helpers -------------------- **/
   function withTimeout(promise, ms, msg) {
     let t;
-    const timeout = new Promise((_, reject) => {
-      t = setTimeout(() => reject(new Error(msg)), ms);
-    });
+    const timeout = new Promise((_, reject) => { t = setTimeout(() => reject(new Error(msg)), ms); });
     return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
   }
 
@@ -365,6 +463,7 @@
   function extractLeadingDuration(line) {
     const trimmed = line.trim();
     if (!trimmed) return null;
+
     const parts = trimmed.split(/\s+/);
     let best = null;
     for (let k = 1; k <= Math.min(4, parts.length); k++) {
@@ -418,7 +517,7 @@
           if (!dur) break;
           block.push({
             durationMs: dur.ms,
-            displayText: candidateLine.trim(), // full line
+            displayText: candidateLine.trim(),
             rest: dur.rest,
             section: rep.label,
           });
@@ -475,6 +574,56 @@
     return out;
   }
 
+  /** -------------------- HR Zones -------------------- **/
+  const HR_MIN = 0;
+  const HR_MAX = 175;
+
+  const ZONES = [
+    { name: "Z1", min: 0,   max: 106 },
+    { name: "Z2", min: 107, max: 123 },
+    { name: "Z3", min: 124, max: 141 },
+    { name: "Z4", min: 142, max: 158 },
+    { name: "Z5", min: 159, max: 175 },
+  ];
+
+  function zoneForBpm(bpm) {
+    if (bpm == null || !Number.isFinite(bpm)) return null;
+    const b = Math.max(HR_MIN, Math.min(HR_MAX, bpm));
+    return ZONES.find(z => b >= z.min && b <= z.max) || null;
+  }
+
+  function setZoneWidths() {
+    const total = HR_MAX - HR_MIN;
+    const widths = ZONES.map(z => (z.max - z.min + 1) / (total + 1) * 100);
+    els.z1.style.width = widths[0] + "%";
+    els.z2.style.width = widths[1] + "%";
+    els.z3.style.width = widths[2] + "%";
+    els.z4.style.width = widths[3] + "%";
+    els.z5.style.width = widths[4] + "%";
+  }
+
+  function updateZoneUI(bpm) {
+    const z = zoneForBpm(bpm);
+    if (!z) {
+      els.zoneName.textContent = "—";
+      els.zoneRange.textContent = `${HR_MIN}–${HR_MAX} bpm`;
+      els.zoneMarker.style.opacity = 0;
+      els.zoneMarkerLine.style.opacity = 0;
+      return;
+    }
+
+    els.zoneName.textContent = z.name;
+    els.zoneRange.textContent = `${z.min}–${z.max} bpm`;
+
+    const clamped = Math.max(HR_MIN, Math.min(HR_MAX, bpm));
+    const pct = ((clamped - HR_MIN) / (HR_MAX - HR_MIN)) * 100;
+
+    els.zoneMarker.style.left = pct + "%";
+    els.zoneMarkerLine.style.left = pct + "%";
+    els.zoneMarker.style.opacity = 1;
+    els.zoneMarkerLine.style.opacity = 1;
+  }
+
   /** -------------------- Heart Rate (Web Bluetooth) -------------------- **/
   const HR_SERVICE = "heart_rate";
   const HR_MEASUREMENT = "heart_rate_measurement"; // 0x2A37
@@ -483,39 +632,25 @@
     device: null,
     char: null,
     bpm: null,
-    rrMs: null,
     lastUpdate: null
   };
 
   function parseHR(dataView) {
     const flags = dataView.getUint8(0);
     const isUint16 = (flags & 0x01) === 0x01;
-    const rrPresent = (flags & 0x10) === 0x10;
 
     let offset = 1;
     const bpm = isUint16 ? dataView.getUint16(offset, true) : dataView.getUint8(offset);
-    offset += isUint16 ? 2 : 1;
-
-    const energyPresent = (flags & 0x08) === 0x08;
-    if (energyPresent) offset += 2;
-
-    let rrMs = null;
-    if (rrPresent && offset + 1 < dataView.byteLength) {
-      const rr1024 = dataView.getUint16(offset, true);
-      rrMs = Math.round(rr1024 * 1000 / 1024);
-    }
-    return { bpm, rrMs };
+    return { bpm };
   }
 
-  function setHrUiStatus(text) {
+  function setHrStatus(text) {
     els.hrStatus.textContent = text;
   }
 
   function updateHrUI() {
     els.hrBpm.textContent = hrState.bpm == null ? "—" : String(hrState.bpm);
-    els.hrRr.textContent = hrState.rrMs == null ? "—" : `${hrState.rrMs} ms`;
-    els.hrUpdated.textContent = hrState.lastUpdate == null ? "—" : hrState.lastUpdate;
-    els.hrDevice.textContent = hrState.device?.name || "—";
+    updateZoneUI(hrState.bpm);
   }
 
   async function connectHeartRate() {
@@ -524,26 +659,26 @@
       return;
     }
     if (!window.isSecureContext) {
-      alert("Web Bluetooth requires HTTPS (secure context). GitHub Pages should be fine—are you on https:// ?");
+      alert("Web Bluetooth requires HTTPS. GitHub Pages should be fine—make sure the URL is https://");
       return;
     }
 
     try {
-      setHrUiStatus("Requesting device…");
+      setHrStatus("HR: requesting…");
       const device = await navigator.bluetooth.requestDevice({
         filters: [{ services: [HR_SERVICE] }]
       });
 
       device.addEventListener("gattserverdisconnected", () => {
-        hrState = { device: null, char: null, bpm: null, rrMs: null, lastUpdate: null };
-        setHrUiStatus("Disconnected");
+        hrState = { device: null, char: null, bpm: null, lastUpdate: null };
+        setHrStatus("HR: disconnected");
         els.hrConnectBtn.disabled = false;
         els.hrDisconnectBtn.disabled = true;
         updateHrUI();
       });
 
-      setHrUiStatus("Connecting…");
-      const server = await withTimeout(device.gatt.connect(), 8000, "GATT connect timed out (another app may be connected).");
+      setHrStatus("HR: connecting…");
+      const server = await withTimeout(device.gatt.connect(), 8000, "GATT connect timed out (Polar app might still be connected).");
 
       const service = await withTimeout(server.getPrimaryService(HR_SERVICE), 6000, "Could not get Heart Rate service.");
       const ch = await withTimeout(service.getCharacteristic(HR_MEASUREMENT), 6000, "Could not get HR measurement characteristic.");
@@ -551,21 +686,22 @@
       await ch.startNotifications();
       ch.addEventListener("characteristicvaluechanged", (event) => {
         const dv = event.target.value;
-        const { bpm, rrMs } = parseHR(dv);
+        const { bpm } = parseHR(dv);
         hrState.bpm = bpm;
-        hrState.rrMs = rrMs;
         hrState.lastUpdate = new Date().toLocaleTimeString();
+        setHrStatus("HR: on");
         updateHrUI();
       });
 
       hrState.device = device;
       hrState.char = ch;
-      setHrUiStatus("Connected");
+
       els.hrConnectBtn.disabled = true;
       els.hrDisconnectBtn.disabled = false;
+      setHrStatus("HR: on");
       updateHrUI();
     } catch (e) {
-      setHrUiStatus("Not connected");
+      setHrStatus("HR: not connected");
       els.hrConnectBtn.disabled = false;
       els.hrDisconnectBtn.disabled = true;
       alert(e?.message || String(e));
@@ -576,8 +712,8 @@
     try {
       if (hrState?.device?.gatt?.connected) hrState.device.gatt.disconnect();
     } finally {
-      hrState = { device: null, char: null, bpm: null, rrMs: null, lastUpdate: null };
-      setHrUiStatus("Not connected");
+      hrState = { device: null, char: null, bpm: null, lastUpdate: null };
+      setHrStatus("HR: off");
       els.hrConnectBtn.disabled = false;
       els.hrDisconnectBtn.disabled = true;
       updateHrUI();
@@ -589,7 +725,6 @@
     input: document.getElementById("input"),
     loadBtn: document.getElementById("loadBtn"),
     clearBtn: document.getElementById("clearBtn"),
-    demoBtn: document.getElementById("demoBtn"),
 
     playBtn: document.getElementById("playBtn"),
     prevBtn: document.getElementById("prevBtn"),
@@ -599,10 +734,10 @@
 
     segmentDesc: document.getElementById("segmentDesc"),
     countdown: document.getElementById("countdown"),
-    metaLine: document.getElementById("metaLine"),
     fill: document.getElementById("fill"),
     posInfo: document.getElementById("posInfo"),
-    totalInfo: document.getElementById("totalInfo"),
+    metaLeft: document.getElementById("metaLeft"),
+    metaRight: document.getElementById("metaRight"),
     list: document.getElementById("segmentsList"),
 
     modeToggle: document.getElementById("modeToggle"),
@@ -614,11 +749,19 @@
     // HR
     hrStatus: document.getElementById("hrStatus"),
     hrBpm: document.getElementById("hrBpm"),
-    hrRr: document.getElementById("hrRr"),
-    hrDevice: document.getElementById("hrDevice"),
-    hrUpdated: document.getElementById("hrUpdated"),
     hrConnectBtn: document.getElementById("hrConnectBtn"),
     hrDisconnectBtn: document.getElementById("hrDisconnectBtn"),
+
+    // zones
+    zoneName: document.getElementById("zoneName"),
+    zoneRange: document.getElementById("zoneRange"),
+    zoneMarker: document.getElementById("zoneMarker"),
+    zoneMarkerLine: document.getElementById("zoneMarkerLine"),
+    z1: document.getElementById("z1"),
+    z2: document.getElementById("z2"),
+    z3: document.getElementById("z3"),
+    z4: document.getElementById("z4"),
+    z5: document.getElementById("z5"),
   };
 
   const DEMO = `Warmup
@@ -710,10 +853,7 @@ Cooldown
       div.className = "seg" + (i === idx ? " active" : "");
       div.innerHTML = `
         <div class="t">${formatMMSS(s.durationMs)}</div>
-        <div class="d">
-          ${s.section ? `<div class="label" style="margin-bottom:4px;opacity:.75;">${escapeHtml(s.section)}</div>` : ""}
-          ${escapeHtml(s.displayText)}
-        </div>
+        <div class="d">${escapeHtml((s.section ? (s.section + " — ") : "") + s.displayText)}</div>
       `;
       div.addEventListener("click", () => jumpTo(i));
       els.list.appendChild(div);
@@ -744,18 +884,17 @@ Cooldown
   function describeCurrent() {
     if (!segments.length) return "Load a workout to begin.";
     const s = segments[idx];
-    const prefix = s.section ? `${s.section} — ` : "";
-    return prefix + s.displayText;
+    return (s.section ? `${s.section} — ` : "") + s.displayText;
   }
 
   function updateUI() {
     if (!segments.length) {
       els.segmentDesc.textContent = "Load a workout to begin.";
       els.countdown.textContent = "00:00";
-      els.metaLine.textContent = "";
       els.fill.style.width = "0%";
-      els.posInfo.textContent = "—";
-      els.totalInfo.textContent = "—";
+      els.posInfo.textContent = "Elapsed — • Remaining —";
+      els.metaLeft.textContent = "Segment —/—";
+      els.metaRight.textContent = "Total —";
       els.list.innerHTML = "";
       return;
     }
@@ -763,14 +902,14 @@ Cooldown
     const s = segments[idx];
     els.segmentDesc.textContent = describeCurrent();
     els.countdown.textContent = formatMMSS(segRemainingMs);
-    els.metaLine.textContent = `Segment ${idx + 1}/${segments.length} • Segment length ${formatMMSS(s.durationMs)}`;
 
     const elapsedTotal = elapsedBeforeCurrentMs + (s.durationMs - segRemainingMs);
     const pct = totalMs > 0 ? (elapsedTotal / totalMs) * 100 : 0;
     els.fill.style.width = `${Math.min(100, Math.max(0, pct)).toFixed(2)}%`;
 
     els.posInfo.textContent = `Elapsed ${formatMMSS(elapsedTotal)} • Remaining ${formatMMSS(totalMs - elapsedTotal)}`;
-    els.totalInfo.textContent = `Total ${formatMMSS(totalMs)}`;
+    els.metaLeft.textContent = `Segment ${idx + 1}/${segments.length}`;
+    els.metaRight.textContent = `Total ${formatMMSS(totalMs)}`;
 
     renderList();
   }
@@ -871,7 +1010,7 @@ Cooldown
     if (running) requestAnimationFrame(tick);
   }
 
-  /** -------------------- Mode / Settings -------------------- **/
+  /** -------------------- Mode -------------------- **/
   function setWorkoutMode(on) {
     document.body.classList.toggle("workoutMode", on);
     els.modeToggle.checked = on;
@@ -879,11 +1018,6 @@ Cooldown
   }
 
   /** -------------------- Wire up -------------------- **/
-  els.demoBtn.addEventListener("click", () => {
-    els.input.value = DEMO;
-    saveState({ workoutText: els.input.value });
-  });
-
   els.loadBtn.addEventListener("click", () => loadWorkout());
   els.reloadBtn.addEventListener("click", () => loadWorkout());
 
@@ -916,7 +1050,7 @@ Cooldown
     if (running) await setWakeLock(els.wakeLockToggle.checked);
   });
 
-  // Heart rate buttons
+  // HR buttons
   els.hrConnectBtn.addEventListener("click", connectHeartRate);
   els.hrDisconnectBtn.addEventListener("click", disconnectHeartRate);
 
@@ -927,10 +1061,12 @@ Cooldown
     saveTimer = setTimeout(() => saveState({ workoutText: els.input.value }), 250);
   });
 
-  /** -------------------- Init from storage -------------------- **/
+  /** -------------------- Init -------------------- **/
+  setZoneWidths();
+
   const stored = loadState();
 
-  els.input.value = typeof stored.workoutText === "string" && stored.workoutText.length
+  els.input.value = (typeof stored.workoutText === "string" && stored.workoutText.length)
     ? stored.workoutText
     : DEMO;
 
@@ -941,12 +1077,10 @@ Cooldown
 
   setWorkoutMode(stored.workoutMode === true);
 
-  // HR init
+  setHrStatus("HR: not connected");
   updateHrUI();
-  setHrUiStatus("Not connected");
-  els.hrDisconnectBtn.disabled = true;
 
-  // Auto-load last workout so you can just hit Play
+  // Auto-load so user can just hit Play
   loadWorkout(els.input.value);
 })();
 </script>
