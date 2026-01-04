@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Workout Timer v1.1</title>
+  <title>Workout Timer v1.2</title>
   <style>
     :root {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -101,7 +101,6 @@
     /* Workout Mode (phone-first) */
     .workoutMode .editorCard { display: none; }
     .workoutMode .grid { grid-template-columns: 1fr; }
-    .workoutMode body, body.workoutMode { padding: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
 
     .workoutMode .desc {
       font-size: clamp(18px, 3.4vw, 26px);
@@ -168,13 +167,36 @@
       .topActions { justify-content: flex-start; }
       textarea { min-height: 210px; }
     }
+
+    /* HR panel */
+    .hrCard {
+      margin-top: 12px;
+      background: #0f1117;
+      border: 1px solid #23283a;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .hrGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    @media (max-width: 520px) { .hrGrid { grid-template-columns: 1fr; } }
+    .hrBig {
+      font-variant-numeric: tabular-nums;
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+    .muted { opacity: .8; }
   </style>
 </head>
 
 <body>
   <div class="app">
     <div class="row">
-      <h1>Workout Timer <span style="opacity:.75;font-weight:700;">v1.1</span></h1>
+      <h1>Workout Timer <span style="opacity:.75;font-weight:700;">v1.2</span></h1>
 
       <div class="topActions">
         <span class="pill toggle" title="Hide editor and show big workout controls">
@@ -213,6 +235,43 @@
           <div class="sub" id="metaLine"></div>
         </div>
 
+        <!-- Heart Rate panel -->
+        <div class="hrCard">
+          <div class="row">
+            <div>
+              <div class="label">Heart rate</div>
+              <div id="hrStatus" class="sub muted" style="margin-top:6px;">Not connected</div>
+            </div>
+            <div class="row left" style="justify-content:flex-end;">
+              <button id="hrConnectBtn" class="">Connect</button>
+              <button id="hrDisconnectBtn" class="danger" disabled>Disconnect</button>
+            </div>
+          </div>
+
+          <div class="hrGrid">
+            <div>
+              <div class="label">BPM</div>
+              <div id="hrBpm" class="hrBig">—</div>
+            </div>
+            <div>
+              <div class="label">RR interval</div>
+              <div id="hrRr" class="hrBig">—</div>
+            </div>
+            <div>
+              <div class="label">Device</div>
+              <div id="hrDevice" class="sub">—</div>
+            </div>
+            <div>
+              <div class="label">Last update</div>
+              <div id="hrUpdated" class="sub">—</div>
+            </div>
+          </div>
+
+          <div class="sub muted" style="margin-top:10px;">
+            Tip: If Connect hangs, ensure the Polar app isn’t actively connected (or enable “2 receiving BLE devices” in the H10 settings).
+          </div>
+        </div>
+
         <div class="controlsBig">
           <button id="playBtn" disabled>Play</button>
           <button id="nextBtn" class="secondary" disabled>Next</button>
@@ -247,7 +306,7 @@
 <script>
 (() => {
   /** -------------------- Storage -------------------- **/
-  const STORAGE_KEY = "workout_timer_v1_1";
+  const STORAGE_KEY = "workout_timer_v1_2";
   function saveState(partial) {
     const current = loadState();
     const merged = { ...current, ...partial };
@@ -260,6 +319,31 @@
     } catch {
       return {};
     }
+  }
+
+  /** -------------------- Helpers -------------------- **/
+  function withTimeout(promise, ms, msg) {
+    let t;
+    const timeout = new Promise((_, reject) => {
+      t = setTimeout(() => reject(new Error(msg)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(t));
+  }
+
+  function formatMMSS(ms) {
+    const clamped = Math.max(0, Math.ceil(ms / 1000));
+    const mm = Math.floor(clamped / 60);
+    const ss = clamped % 60;
+    return String(mm).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
   /** -------------------- Parsing -------------------- **/
@@ -281,8 +365,6 @@
   function extractLeadingDuration(line) {
     const trimmed = line.trim();
     if (!trimmed) return null;
-
-    // Try first 1..4 tokens as the duration spec (supports "9m20s", "9m 20s", "1h 2m 3s")
     const parts = trimmed.split(/\s+/);
     let best = null;
     for (let k = 1; k <= Math.min(4, parts.length); k++) {
@@ -328,17 +410,15 @@
 
       const rep = isRepeatHeader(line);
       if (rep) {
-        // Collect the following interval block until next header/non-interval line
         const block = [];
         i++;
-
         while (i < lines.length) {
           const candidateLine = lines[i];
           const dur = extractLeadingDuration(candidateLine);
-          if (!dur) break; // stop at next header
+          if (!dur) break;
           block.push({
             durationMs: dur.ms,
-            displayText: candidateLine.trim(), // FULL LINE as description ✅
+            displayText: candidateLine.trim(), // full line
             rest: dur.rest,
             section: rep.label,
           });
@@ -362,7 +442,7 @@
       if (dur) {
         out.push({
           durationMs: dur.ms,
-          displayText: line.trim(), // FULL LINE as description ✅
+          displayText: line.trim(),
           rest: dur.rest,
           section: null
         });
@@ -370,7 +450,6 @@
         continue;
       }
 
-      // Header label applies to subsequent direct intervals until next header/repeat header
       const header = line.trim();
       i++;
       while (i < lines.length) {
@@ -382,7 +461,7 @@
 
         out.push({
           durationMs: d.ms,
-          displayText: next.trim(), // FULL LINE ✅
+          displayText: next.trim(),
           rest: d.rest,
           section: header
         });
@@ -394,6 +473,115 @@
       throw new Error("No intervals found. Make sure lines start with durations like '9m20s ...'.");
     }
     return out;
+  }
+
+  /** -------------------- Heart Rate (Web Bluetooth) -------------------- **/
+  const HR_SERVICE = "heart_rate";
+  const HR_MEASUREMENT = "heart_rate_measurement"; // 0x2A37
+
+  let hrState = {
+    device: null,
+    char: null,
+    bpm: null,
+    rrMs: null,
+    lastUpdate: null
+  };
+
+  function parseHR(dataView) {
+    const flags = dataView.getUint8(0);
+    const isUint16 = (flags & 0x01) === 0x01;
+    const rrPresent = (flags & 0x10) === 0x10;
+
+    let offset = 1;
+    const bpm = isUint16 ? dataView.getUint16(offset, true) : dataView.getUint8(offset);
+    offset += isUint16 ? 2 : 1;
+
+    const energyPresent = (flags & 0x08) === 0x08;
+    if (energyPresent) offset += 2;
+
+    let rrMs = null;
+    if (rrPresent && offset + 1 < dataView.byteLength) {
+      const rr1024 = dataView.getUint16(offset, true);
+      rrMs = Math.round(rr1024 * 1000 / 1024);
+    }
+    return { bpm, rrMs };
+  }
+
+  function setHrUiStatus(text) {
+    els.hrStatus.textContent = text;
+  }
+
+  function updateHrUI() {
+    els.hrBpm.textContent = hrState.bpm == null ? "—" : String(hrState.bpm);
+    els.hrRr.textContent = hrState.rrMs == null ? "—" : `${hrState.rrMs} ms`;
+    els.hrUpdated.textContent = hrState.lastUpdate == null ? "—" : hrState.lastUpdate;
+    els.hrDevice.textContent = hrState.device?.name || "—";
+  }
+
+  async function connectHeartRate() {
+    if (!navigator.bluetooth) {
+      alert("Web Bluetooth not available in this browser.");
+      return;
+    }
+    if (!window.isSecureContext) {
+      alert("Web Bluetooth requires HTTPS (secure context). GitHub Pages should be fine—are you on https:// ?");
+      return;
+    }
+
+    try {
+      setHrUiStatus("Requesting device…");
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: [HR_SERVICE] }]
+      });
+
+      device.addEventListener("gattserverdisconnected", () => {
+        hrState = { device: null, char: null, bpm: null, rrMs: null, lastUpdate: null };
+        setHrUiStatus("Disconnected");
+        els.hrConnectBtn.disabled = false;
+        els.hrDisconnectBtn.disabled = true;
+        updateHrUI();
+      });
+
+      setHrUiStatus("Connecting…");
+      const server = await withTimeout(device.gatt.connect(), 8000, "GATT connect timed out (another app may be connected).");
+
+      const service = await withTimeout(server.getPrimaryService(HR_SERVICE), 6000, "Could not get Heart Rate service.");
+      const ch = await withTimeout(service.getCharacteristic(HR_MEASUREMENT), 6000, "Could not get HR measurement characteristic.");
+
+      await ch.startNotifications();
+      ch.addEventListener("characteristicvaluechanged", (event) => {
+        const dv = event.target.value;
+        const { bpm, rrMs } = parseHR(dv);
+        hrState.bpm = bpm;
+        hrState.rrMs = rrMs;
+        hrState.lastUpdate = new Date().toLocaleTimeString();
+        updateHrUI();
+      });
+
+      hrState.device = device;
+      hrState.char = ch;
+      setHrUiStatus("Connected");
+      els.hrConnectBtn.disabled = true;
+      els.hrDisconnectBtn.disabled = false;
+      updateHrUI();
+    } catch (e) {
+      setHrUiStatus("Not connected");
+      els.hrConnectBtn.disabled = false;
+      els.hrDisconnectBtn.disabled = true;
+      alert(e?.message || String(e));
+    }
+  }
+
+  function disconnectHeartRate() {
+    try {
+      if (hrState?.device?.gatt?.connected) hrState.device.gatt.disconnect();
+    } finally {
+      hrState = { device: null, char: null, bpm: null, rrMs: null, lastUpdate: null };
+      setHrUiStatus("Not connected");
+      els.hrConnectBtn.disabled = false;
+      els.hrDisconnectBtn.disabled = true;
+      updateHrUI();
+    }
   }
 
   /** -------------------- Player -------------------- **/
@@ -422,6 +610,15 @@
     countdownBeepToggle: document.getElementById("countdownBeepToggle"),
     vibrateToggle: document.getElementById("vibrateToggle"),
     wakeLockToggle: document.getElementById("wakeLockToggle"),
+
+    // HR
+    hrStatus: document.getElementById("hrStatus"),
+    hrBpm: document.getElementById("hrBpm"),
+    hrRr: document.getElementById("hrRr"),
+    hrDevice: document.getElementById("hrDevice"),
+    hrUpdated: document.getElementById("hrUpdated"),
+    hrConnectBtn: document.getElementById("hrConnectBtn"),
+    hrDisconnectBtn: document.getElementById("hrDisconnectBtn"),
   };
 
   const DEMO = `Warmup
@@ -445,15 +642,7 @@ Cooldown
   let totalMs = 0;
   let elapsedBeforeCurrentMs = 0;
 
-  // Countdown beeps state
   let lastSecondAnnounced = null;
-
-  function formatMMSS(ms) {
-    const clamped = Math.max(0, Math.ceil(ms / 1000));
-    const mm = Math.floor(clamped / 60);
-    const ss = clamped % 60;
-    return String(mm).padStart(2, "0") + ":" + String(ss).padStart(2, "0");
-  }
 
   function sumTotalMs(segs) {
     return segs.reduce((a, s) => a + s.durationMs, 0);
@@ -464,7 +653,6 @@ Cooldown
     return s;
   }
 
-  // Simple beep using WebAudio
   function beep(freq = 880, ms = 110) {
     if (!els.beepToggle.checked) return;
     try {
@@ -491,7 +679,6 @@ Cooldown
   let wakeLock = null;
   async function setWakeLock(on) {
     if (!("wakeLock" in navigator)) {
-      // Not supported (e.g., iOS Safari)
       els.wakeLockToggle.checked = false;
       saveState({ wakeLock: false });
       return;
@@ -505,27 +692,16 @@ Cooldown
         wakeLock = null;
       }
     } catch (_) {
-      // silently fail
       els.wakeLockToggle.checked = false;
       saveState({ wakeLock: false });
     }
   }
 
   document.addEventListener("visibilitychange", () => {
-    // If the page becomes visible again, re-acquire wake lock if user wants it and we are running
     if (document.visibilityState === "visible" && els.wakeLockToggle.checked && running) {
       setWakeLock(true);
     }
   });
-
-  function escapeHtml(str) {
-    return String(str)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-  }
 
   function renderList() {
     els.list.innerHTML = "";
@@ -555,11 +731,9 @@ Cooldown
   function setRunning(on) {
     running = on;
     els.playBtn.textContent = running ? "Pause" : "Play";
-
     if (running) {
       lastTick = performance.now();
       lastSecondAnnounced = null;
-
       if (els.wakeLockToggle.checked) setWakeLock(true);
       requestAnimationFrame(tick);
     } else {
@@ -571,7 +745,7 @@ Cooldown
     if (!segments.length) return "Load a workout to begin.";
     const s = segments[idx];
     const prefix = s.section ? `${s.section} — ` : "";
-    return prefix + s.displayText; // FULL LINE ✅
+    return prefix + s.displayText;
   }
 
   function updateUI() {
@@ -640,7 +814,6 @@ Cooldown
       vibrate([60, 40, 60]);
       updateUI();
     } else {
-      // finished
       setRunning(false);
       segRemainingMs = 0;
       updateUI();
@@ -676,12 +849,10 @@ Cooldown
 
     segRemainingMs -= dt;
 
-    // Optional 3-2-1 countdown beeps in the last 3 seconds
     if (els.countdownBeepToggle.checked) {
       const sec = Math.max(0, Math.ceil(segRemainingMs / 1000));
       if (sec <= 3 && sec >= 1 && sec !== lastSecondAnnounced) {
         lastSecondAnnounced = sec;
-        // Slightly different pitch each second
         const freq = sec === 3 ? 520 : (sec === 2 ? 620 : 720);
         beep(freq, 90);
         vibrate(40);
@@ -721,9 +892,8 @@ Cooldown
     saveState({ workoutText: "" });
   });
 
-  els.playBtn.addEventListener("click", async () => {
+  els.playBtn.addEventListener("click", () => {
     if (!segments.length) return;
-    // On iOS, audio may require a user gesture; this click qualifies.
     setRunning(!running);
   });
 
@@ -746,7 +916,11 @@ Cooldown
     if (running) await setWakeLock(els.wakeLockToggle.checked);
   });
 
-  // Autosave text as you type/paste
+  // Heart rate buttons
+  els.hrConnectBtn.addEventListener("click", connectHeartRate);
+  els.hrDisconnectBtn.addEventListener("click", disconnectHeartRate);
+
+  // Autosave workout text as you type/paste
   let saveTimer = null;
   els.input.addEventListener("input", () => {
     clearTimeout(saveTimer);
@@ -766,6 +940,11 @@ Cooldown
   els.wakeLockToggle.checked = stored.wakeLock === true; // default false
 
   setWorkoutMode(stored.workoutMode === true);
+
+  // HR init
+  updateHrUI();
+  setHrUiStatus("Not connected");
+  els.hrDisconnectBtn.disabled = true;
 
   // Auto-load last workout so you can just hit Play
   loadWorkout(els.input.value);
