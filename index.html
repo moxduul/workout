@@ -3,303 +3,242 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Workout Timer v1.3</title>
+  <title>Workout Timer v1.4</title>
   <style>
-    :root {
-      color-scheme: dark;
-      --bg: #070A0F;
-      --card: rgba(255,255,255,0.06);
-      --card2: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.10);
-      --muted: rgba(255,255,255,0.65);
-      --text: rgba(255,255,255,0.92);
-      --accent: #60A5FA;
-      --danger: #EF4444;
-      --shadow: 0 10px 30px rgba(0,0,0,0.35);
-      --radius: 18px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    :root{
+      color-scheme:dark;
+      --bg:#070A0F;
+      --card:rgba(255,255,255,.06);
+      --card2:rgba(255,255,255,.04);
+      --border:rgba(255,255,255,.10);
+      --muted:rgba(255,255,255,.65);
+      --text:rgba(255,255,255,.92);
+      --accent:#60A5FA;
+      --danger:#EF4444;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+      --mono:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:
+        radial-gradient(1200px 700px at 50% -10%, rgba(96,165,250,.18), transparent 60%),
+        radial-gradient(900px 600px at 10% 20%, rgba(34,197,94,.10), transparent 55%),
+        radial-gradient(900px 600px at 90% 30%, rgba(239,68,68,.08), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      padding:14px;
+      padding-bottom:calc(14px + env(safe-area-inset-bottom));
+    }
+    .app{max-width:980px;margin:0 auto;display:grid;gap:14px}
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(10px);
+    }
+    .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+    @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+    textarea{
+      width:100%;
+      min-height:240px;
+      resize:vertical;
+      background:rgba(0,0,0,.35);
+      color:var(--text);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      padding:12px;
+      outline:none;
+      line-height:1.35;
+      font-size:14px;
+    }
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+    .row.left{justify-content:flex-start}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border-radius:999px;
+      background:rgba(0,0,0,.28);
+      border:1px solid rgba(255,255,255,.10);
+      color:rgba(255,255,255,.86);
+      font-size:13px;
+      user-select:none;
+    }
+    button{
+      background:rgba(96,165,250,.22);
+      color:rgba(255,255,255,.92);
+      border:1px solid rgba(96,165,250,.38);
+      padding:10px 12px;border-radius:14px;
+      cursor:pointer;font-weight:750;font-size:14px;
+      transition:transform .06s ease, background .15s ease, border-color .15s ease;
+    }
+    button:active{transform:translateY(1px)}
+    button.secondary{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.14)}
+    button.danger{background:rgba(239,68,68,.18);border-color:rgba(239,68,68,.35)}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    input[type="checkbox"]{transform:translateY(1px) scale(1.05)}
+
+    .desc{
+      font-size:18px;font-weight:800;letter-spacing:-.2px;
+      line-height:1.28;margin-top:4px;
+    }
+    .bigRow{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+    @media(max-width:520px){.bigRow{grid-template-columns:1fr}}
+    .bigBox{
+      background:var(--card2);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      padding:12px 12px 10px;
+    }
+    .bigLabel{
+      font-size:12px;color:var(--muted);
+      letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;
+    }
+    .bigTime{
+      font-variant-numeric:tabular-nums;
+      font-size:56px;font-weight:950;letter-spacing:-1px;line-height:1;
+    }
+    .meta{
+      margin-top:12px;color:rgba(255,255,255,.82);
+      font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    }
+    .progressWrap{margin-top:12px}
+    .bar{
+      height:10px;border-radius:999px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;border:1px solid rgba(255,255,255,.10);
+    }
+    .fill{height:100%;width:0%;background:rgba(96,165,250,.85)}
+
+    .controlsBig{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .controlsBig button{
+      padding:14px 14px;font-size:18px;border-radius:18px;
+      background:rgba(96,165,250,.26);border-color:rgba(96,165,250,.42);
+    }
+    .controlsSmall{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px}
+    .controlsSmall button{padding:12px 12px;font-size:16px;border-radius:18px}
+    .toggles{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;align-items:center;color:rgba(255,255,255,.84);font-size:13px}
+
+    .list{
+      max-height:260px;overflow:auto;
+      border-top:1px solid rgba(255,255,255,.10);
+      margin-top:12px;padding-top:12px;
+    }
+    .seg{
+      display:grid;grid-template-columns:74px 1fr;gap:10px;
+      padding:8px 10px;border-radius:14px;border:1px solid transparent;
+      background:rgba(0,0,0,.18);
+    }
+    .seg + .seg{margin-top:8px}
+    .seg.active{border-color:rgba(96,165,250,.60);background:rgba(96,165,250,.12)}
+    .seg .t{font-variant-numeric:tabular-nums;opacity:.88}
+    .seg .d{opacity:.96}
+
+    /* HR zone bar: aligned scale */
+    .zoneWrap{
+      margin-top:12px;
+      background:rgba(0,0,0,.26);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:16px;
+      padding:10px;
+    }
+    .zoneHeader{
+      display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+      margin-bottom:8px;color:rgba(255,255,255,.80);font-size:13px;
+    }
+    .zoneHeader .zname{font-weight:850;letter-spacing:-.2px}
+    .zoneHeader .zrange{font-variant-numeric:tabular-nums;opacity:.80}
+
+    .zoneBar{
+      position:relative;
+      height:14px;border-radius:999px;overflow:hidden;display:flex;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+    }
+    .zseg{height:100%}
+    .z1{background:#8B949E}
+    .z2{background:#7DD3FC}
+    .z3{background:#22C55E}
+    .z4{background:#F59E0B}
+    .z5{background:#EF4444}
+
+    /* Target overlay on the same bar */
+    .targetOverlay{
+      position:absolute;top:0;bottom:0;
+      background:rgba(255,255,255,.22);
+      border-left:1px solid rgba(255,255,255,.55);
+      border-right:1px solid rgba(255,255,255,.55);
+      border-radius:999px;
+      pointer-events:none;
+      opacity:0;
     }
 
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: radial-gradient(1200px 700px at 50% -10%, rgba(96,165,250,0.18), transparent 60%),
-                  radial-gradient(900px 600px at 10% 20%, rgba(34,197,94,0.10), transparent 55%),
-                  radial-gradient(900px 600px at 90% 30%, rgba(239,68,68,0.08), transparent 55%),
-                  var(--bg);
-      color: var(--text);
-      padding: 14px;
-      padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    /* Marker aligned to the same scale */
+    .zoneMarker{
+      position:absolute;
+      top:-6px;
+      width:0;height:0;
+      border-left:6px solid transparent;
+      border-right:6px solid transparent;
+      border-bottom:8px solid rgba(255,255,255,.92);
+      transform:translateX(-50%);
+      filter:drop-shadow(0 2px 4px rgba(0,0,0,.45));
+      opacity:0;
+      pointer-events:none;
+    }
+    .zoneMarkerLine{
+      position:absolute;top:0;bottom:0;width:2px;
+      background:rgba(255,255,255,.88);
+      transform:translateX(-50%);
+      opacity:0;
+      pointer-events:none;
     }
 
-    .app { max-width: 980px; margin: 0 auto; display: grid; gap: 14px; }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
+    .ticks{
+      position:relative;
+      margin-top:8px;
+      height:18px;
+      font-size:12px;
+      color:rgba(255,255,255,.58);
+      font-variant-numeric:tabular-nums;
     }
-
-    .grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 14px; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-
-    textarea {
-      width: 100%;
-      min-height: 240px;
-      resize: vertical;
-      background: rgba(0,0,0,0.35);
-      color: var(--text);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 14px;
-      padding: 12px;
-      outline: none;
-      line-height: 1.35;
-      font-size: 14px;
-    }
-
-    .row { display:flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-    .row.left { justify-content: flex-start; }
-
-    .pill {
-      display:inline-flex;
+    .tick{
+      position:absolute;
+      top:0;
+      transform:translateX(-50%);
+      white-space:nowrap;
+      display:flex;
+      flex-direction:column;
       align-items:center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      background: rgba(0,0,0,0.28);
-      border: 1px solid rgba(255,255,255,0.10);
-      color: rgba(255,255,255,0.86);
-      font-size: 13px;
-      user-select: none;
+      gap:4px;
     }
+    .tick .line{
+      width:1px;height:6px;background:rgba(255,255,255,.20);
+    }
+    .tick .num{line-height:1}
 
-    button {
-      background: rgba(96,165,250,0.22);
-      color: rgba(255,255,255,0.92);
-      border: 1px solid rgba(96,165,250,0.38);
-      padding: 10px 12px;
-      border-radius: 14px;
-      cursor: pointer;
-      font-weight: 750;
-      font-size: 14px;
-      transition: transform 0.06s ease, background 0.15s ease, border-color 0.15s ease;
-    }
-    button:active { transform: translateY(1px); }
-    button.secondary {
-      background: rgba(255,255,255,0.10);
-      border-color: rgba(255,255,255,0.14);
-    }
-    button.danger {
-      background: rgba(239,68,68,0.18);
-      border-color: rgba(239,68,68,0.35);
-    }
-    button:disabled { opacity: .45; cursor: not-allowed; }
+    /* Workout mode: only essentials */
+    .workoutMode .editorCard{display:none}
+    .workoutMode .grid{grid-template-columns:1fr}
+    .workoutMode .list{display:none}
+    .workoutMode .desc{font-size:clamp(19px,3.6vw,28px);font-weight:900}
+    .workoutMode .bigTime{font-size:clamp(72px,12vw,118px)}
+    .workoutMode .bigLabel{display:none}
+    .workoutMode .bigBox{padding:12px}
+    .workoutMode .toggles{display:none}
 
-    input[type="checkbox"] { transform: translateY(1px) scale(1.05); }
+    .topStrip{display:flex;justify-content:space-between;gap:10px;align-items:center}
+    .topStrip .left{display:flex;gap:10px;align-items:center}
 
-    /* Right panel (workout display) */
-    .desc {
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: -0.2px;
-      line-height: 1.28;
-      margin-top: 4px;
+    .tinyNote{
+      margin-top:6px;
+      font-size:12px;
+      color:rgba(255,255,255,.55);
     }
-
-    .bigRow {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 14px;
-    }
-    @media (max-width: 520px) { .bigRow { grid-template-columns: 1fr; } }
-
-    .bigBox {
-      background: var(--card2);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 18px;
-      padding: 12px 12px 10px;
-    }
-
-    .bigLabel {
-      font-size: 12px;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-
-    .bigTime {
-      font-variant-numeric: tabular-nums;
-      font-size: 56px;
-      font-weight: 950;
-      letter-spacing: -1px;
-      line-height: 1;
-    }
-
-    .meta {
-      margin-top: 12px;
-      color: rgba(255,255,255,0.82);
-      font-size: 13px;
-      display:flex;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .progressWrap { margin-top: 12px; }
-    .bar {
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.10);
-    }
-    .fill { height: 100%; width: 0%; background: rgba(96,165,250,0.85); }
-
-    /* Controls */
-    .controlsBig {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 12px;
-    }
-    .controlsBig button {
-      padding: 14px 14px;
-      font-size: 18px;
-      border-radius: 18px;
-      background: rgba(96,165,250,0.26);
-      border-color: rgba(96,165,250,0.42);
-    }
-
-    .controlsSmall {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
-      margin-top: 10px;
-    }
-    .controlsSmall button {
-      padding: 12px 12px;
-      font-size: 16px;
-      border-radius: 18px;
-    }
-
-    .toggles {
-      display:flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
-      align-items: center;
-      color: rgba(255,255,255,0.84);
-      font-size: 13px;
-    }
-
-    /* Interval list (editor mode only) */
-    .list {
-      max-height: 260px;
-      overflow: auto;
-      border-top: 1px solid rgba(255,255,255,0.10);
-      margin-top: 12px;
-      padding-top: 12px;
-    }
-    .seg {
-      display: grid;
-      grid-template-columns: 74px 1fr;
-      gap: 10px;
-      padding: 8px 10px;
-      border-radius: 14px;
-      border: 1px solid transparent;
-      background: rgba(0,0,0,0.18);
-    }
-    .seg + .seg { margin-top: 8px; }
-    .seg.active { border-color: rgba(96,165,250,0.60); background: rgba(96,165,250,0.12); }
-    .seg .t { font-variant-numeric: tabular-nums; opacity: .88; }
-    .seg .d { opacity: .96; }
-
-    /* HR zone bar */
-    .zoneWrap {
-      margin-top: 12px;
-      background: rgba(0,0,0,0.26);
-      border: 1px solid rgba(255,255,255,0.10);
-      border-radius: 16px;
-      padding: 10px;
-    }
-    .zoneHeader {
-      display:flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: baseline;
-      margin-bottom: 8px;
-      color: rgba(255,255,255,0.80);
-      font-size: 13px;
-    }
-    .zoneHeader .zname { font-weight: 850; letter-spacing: -0.2px; }
-    .zoneHeader .zrange { font-variant-numeric: tabular-nums; opacity: .80; }
-
-    .zoneBar {
-      position: relative;
-      height: 14px;
-      border-radius: 999px;
-      overflow: hidden;
-      display: flex;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-    }
-    .zseg { height: 100%; }
-    /* zone colors */
-    .z1 { background: #8B949E; }      /* grey */
-    .z2 { background: #7DD3FC; }      /* light blue */
-    .z3 { background: #22C55E; }      /* green */
-    .z4 { background: #F59E0B; }      /* yellow-orange */
-    .z5 { background: #EF4444; }      /* red */
-
-    .zoneMarker {
-      position: absolute;
-      top: -6px;
-      width: 0;
-      height: 0;
-      border-left: 6px solid transparent;
-      border-right: 6px solid transparent;
-      border-bottom: 8px solid rgba(255,255,255,0.92);
-      transform: translateX(-6px);
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.45));
-      opacity: 0;
-    }
-    .zoneMarkerLine {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: rgba(255,255,255,0.88);
-      transform: translateX(-1px);
-      opacity: 0;
-    }
-    .zoneTicks {
-      display:flex;
-      justify-content: space-between;
-      margin-top: 6px;
-      color: rgba(255,255,255,0.55);
-      font-size: 12px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* Workout mode: show only what matters */
-    .workoutMode .editorCard { display: none; }
-    .workoutMode .grid { grid-template-columns: 1fr; }
-    .workoutMode .list { display: none; }
-    .workoutMode .desc { font-size: clamp(19px, 3.6vw, 28px); font-weight: 900; }
-    .workoutMode .bigTime { font-size: clamp(72px, 12vw, 118px); }
-    .workoutMode .bigLabel { display: none; } /* no labels in workout mode */
-    .workoutMode .bigBox { padding: 12px; }
-    .workoutMode .toggles { display: none; } /* keep it ultra-clean in workout mode */
-
-    /* Tiny top strip (no title) */
-    .topStrip { display:flex; justify-content: space-between; gap: 10px; align-items:center; }
-    .topStrip .left { display:flex; gap: 10px; align-items:center; }
   </style>
 </head>
 
@@ -321,7 +260,9 @@
     <div class="grid">
       <div class="card editorCard">
         <div class="row">
-          <div class="pill" style="opacity:.9;">Paste workout text (intervals must start with a duration, e.g. <span style="font-family:var(--mono);">9m20s</span>)</div>
+          <div class="pill" style="opacity:.9;">
+            Paste workout text (intervals start with duration, e.g. <span style="font-family:var(--mono);">9m20s</span>)
+          </div>
           <div class="row left">
             <button id="loadBtn">Load</button>
             <button id="clearBtn" class="danger">Clear</button>
@@ -334,6 +275,7 @@
 
       <div class="card">
         <div id="segmentDesc" class="desc">Load a workout to begin.</div>
+        <div id="targetNote" class="tinyNote"></div>
 
         <div class="bigRow">
           <div class="bigBox">
@@ -349,22 +291,23 @@
         <div class="zoneWrap">
           <div class="zoneHeader">
             <div class="zname" id="zoneName">—</div>
-            <div class="zrange" id="zoneRange">0–175 bpm</div>
+            <div class="zrange" id="zoneRange">—</div>
           </div>
+
           <div class="zoneBar" id="zoneBar">
-            <!-- widths are set by JS for exact proportions -->
             <div class="zseg z1" id="z1"></div>
             <div class="zseg z2" id="z2"></div>
             <div class="zseg z3" id="z3"></div>
             <div class="zseg z4" id="z4"></div>
             <div class="zseg z5" id="z5"></div>
 
+            <div class="targetOverlay" id="targetOverlay"></div>
+
             <div class="zoneMarker" id="zoneMarker"></div>
             <div class="zoneMarkerLine" id="zoneMarkerLine"></div>
           </div>
-          <div class="zoneTicks">
-            <span>0</span><span>106</span><span>123</span><span>141</span><span>158</span><span>175</span>
-          </div>
+
+          <div class="ticks" id="ticks"></div>
         </div>
 
         <div class="meta">
@@ -376,7 +319,7 @@
           <div class="bar"><div id="fill" class="fill"></div></div>
           <div class="meta" style="margin-top:10px;">
             <div id="posInfo">Elapsed — • Remaining —</div>
-            <div id="hrStatus" style="color:rgba(255,255,255,0.55);">HR: not connected</div>
+            <div id="hrStatus" style="color:rgba(255,255,255,.55);">HR: not connected</div>
           </div>
         </div>
 
@@ -406,7 +349,7 @@
 <script>
 (() => {
   /** -------------------- Storage -------------------- **/
-  const STORAGE_KEY = "workout_timer_v1_3";
+  const STORAGE_KEY = "workout_timer_v1_4";
   function saveState(partial) {
     const current = loadState();
     const merged = { ...current, ...partial };
@@ -444,18 +387,18 @@
       .replaceAll("'", "&#039;");
   }
 
+  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
+
   /** -------------------- Parsing -------------------- **/
   function parseDurationMs(candidate) {
     const t = candidate.trim().toLowerCase();
     let hours = 0, mins = 0, secs = 0;
-
     const h = t.match(/(\d+)\s*h/);
     const m = t.match(/(\d+)\s*m/);
     const s = t.match(/(\d+)\s*s/);
     if (h) hours = parseInt(h[1], 10);
     if (m) mins = parseInt(m[1], 10);
     if (s) secs = parseInt(s[1], 10);
-
     const ms = ((hours * 3600) + (mins * 60) + secs) * 1000;
     return ms > 0 ? ms : null;
   }
@@ -463,7 +406,6 @@
   function extractLeadingDuration(line) {
     const trimmed = line.trim();
     if (!trimmed) return null;
-
     const parts = trimmed.split(/\s+/);
     let best = null;
     for (let k = 1; k <= Math.min(4, parts.length); k++) {
@@ -472,7 +414,6 @@
       if (ms != null) best = { ms, usedTokens: k };
     }
     if (!best) return null;
-
     return {
       ms: best.ms,
       rest: parts.slice(best.usedTokens).join(" ").trim(),
@@ -496,11 +437,7 @@
   }
 
   function parseWorkout(text) {
-    const lines = text
-      .split(/\r?\n/)
-      .map(l => l.trim())
-      .filter(l => l.length > 0);
-
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
     const out = [];
     let i = 0;
 
@@ -523,7 +460,6 @@
           });
           i++;
         }
-
         for (let r = 1; r <= rep.count; r++) {
           for (const seg of block) {
             out.push({
@@ -539,12 +475,7 @@
 
       const dur = extractLeadingDuration(line);
       if (dur) {
-        out.push({
-          durationMs: dur.ms,
-          displayText: line.trim(),
-          rest: dur.rest,
-          section: null
-        });
+        out.push({ durationMs: dur.ms, displayText: line.trim(), rest: dur.rest, section: null });
         i++;
         continue;
       }
@@ -558,12 +489,7 @@
         const d = extractLeadingDuration(next);
         if (!d) break;
 
-        out.push({
-          durationMs: d.ms,
-          displayText: next.trim(),
-          rest: d.rest,
-          section: header
-        });
+        out.push({ durationMs: d.ms, displayText: next.trim(), rest: d.rest, section: header });
         i++;
       }
     }
@@ -574,32 +500,78 @@
     return out;
   }
 
-  /** -------------------- HR Zones -------------------- **/
-  const HR_MIN = 0;
+  /** -------------------- Target HR parsing from text -------------------- **/
+  // Supports:
+  //  - 130bpm, 130 bpm, 130 bm
+  //  - 130-135bpm, 130-135 bpm, 130 – 135 bpm (en dash)
+  function parseTargetBpmRange(text) {
+    const t = String(text || "");
+    const re = /\b(\d{2,3})\s*(?:[-–]\s*(\d{2,3}))?\s*(?:bpm|bm)\b/i;
+    const m = t.match(re);
+    if (!m) return null;
+    const a = parseInt(m[1], 10);
+    const b = m[2] ? parseInt(m[2], 10) : a;
+    if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    return { lo, hi };
+  }
+
+  /** -------------------- HR Zones (aligned scale) -------------------- **/
+  // Scale now starts at 50 bpm, as requested.
+  const HR_MIN = 50;
   const HR_MAX = 175;
 
+  // Your boundaries (keeping your numbers, but within scale):
+  // Z1 grey:   50–106
+  // Z2 blue:   107–123
+  // Z3 green:  124–141
+  // Z4 orange: 142–158
+  // Z5 red:    159–175  (so 158 stays Z4; avoids overlap)
   const ZONES = [
-    { name: "Z1", min: 0,   max: 106 },
-    { name: "Z2", min: 107, max: 123 },
-    { name: "Z3", min: 124, max: 141 },
-    { name: "Z4", min: 142, max: 158 },
-    { name: "Z5", min: 159, max: 175 },
+    { key: "Z1", min: 50,  max: 106 },
+    { key: "Z2", min: 107, max: 123 },
+    { key: "Z3", min: 124, max: 141 },
+    { key: "Z4", min: 142, max: 158 },
+    { key: "Z5", min: 159, max: 175 },
   ];
+
+  const TICKS = [50, 106, 123, 141, 158, 175];
+
+  function pctForBpm(bpm) {
+    const b = clamp(bpm, HR_MIN, HR_MAX);
+    return ((b - HR_MIN) / (HR_MAX - HR_MIN)) * 100;
+  }
 
   function zoneForBpm(bpm) {
     if (bpm == null || !Number.isFinite(bpm)) return null;
-    const b = Math.max(HR_MIN, Math.min(HR_MAX, bpm));
+    const b = clamp(bpm, HR_MIN, HR_MAX);
     return ZONES.find(z => b >= z.min && b <= z.max) || null;
   }
 
   function setZoneWidths() {
-    const total = HR_MAX - HR_MIN;
-    const widths = ZONES.map(z => (z.max - z.min + 1) / (total + 1) * 100);
-    els.z1.style.width = widths[0] + "%";
-    els.z2.style.width = widths[1] + "%";
-    els.z3.style.width = widths[2] + "%";
-    els.z4.style.width = widths[3] + "%";
-    els.z5.style.width = widths[4] + "%";
+    const total = (HR_MAX - HR_MIN);
+    // Use inclusive lengths so boundaries match ticks nicely.
+    // We’ll compute by raw span (max-min) and normalize on total span.
+    const w = (min, max) => ((max - min) / total) * 100;
+
+    // Each zone starts right after the previous boundary; this matches our min/max definitions.
+    els.z1.style.width = w(ZONES[0].min, ZONES[0].max) + "%";
+    els.z2.style.width = w(ZONES[1].min, ZONES[1].max) + "%";
+    els.z3.style.width = w(ZONES[2].min, ZONES[2].max) + "%";
+    els.z4.style.width = w(ZONES[3].min, ZONES[3].max) + "%";
+    els.z5.style.width = w(ZONES[4].min, ZONES[4].max) + "%";
+  }
+
+  function renderTicks() {
+    els.ticks.innerHTML = "";
+    for (const bpm of TICKS) {
+      const div = document.createElement("div");
+      div.className = "tick";
+      div.style.left = pctForBpm(bpm) + "%";
+      div.innerHTML = `<div class="line"></div><div class="num">${bpm}</div>`;
+      els.ticks.appendChild(div);
+    }
   }
 
   function updateZoneUI(bpm) {
@@ -611,42 +583,51 @@
       els.zoneMarkerLine.style.opacity = 0;
       return;
     }
-
-    els.zoneName.textContent = z.name;
+    els.zoneName.textContent = z.key;
     els.zoneRange.textContent = `${z.min}–${z.max} bpm`;
 
-    const clamped = Math.max(HR_MIN, Math.min(HR_MAX, bpm));
-    const pct = ((clamped - HR_MIN) / (HR_MAX - HR_MIN)) * 100;
-
+    const pct = pctForBpm(bpm);
     els.zoneMarker.style.left = pct + "%";
     els.zoneMarkerLine.style.left = pct + "%";
     els.zoneMarker.style.opacity = 1;
     els.zoneMarkerLine.style.opacity = 1;
   }
 
+  function updateTargetOverlay(target) {
+    if (!target) {
+      els.targetOverlay.style.opacity = 0;
+      els.targetNote.textContent = "";
+      return;
+    }
+    const lo = clamp(target.lo, HR_MIN, HR_MAX);
+    const hi = clamp(target.hi, HR_MIN, HR_MAX);
+    const left = pctForBpm(lo);
+    const right = pctForBpm(hi);
+    const width = Math.max(0, right - left);
+
+    els.targetOverlay.style.left = left + "%";
+    els.targetOverlay.style.width = width + "%";
+    els.targetOverlay.style.opacity = 1;
+
+    els.targetNote.textContent = (target.lo === target.hi)
+      ? `Target HR: ${target.lo} bpm`
+      : `Target HR: ${target.lo}–${target.hi} bpm`;
+  }
+
   /** -------------------- Heart Rate (Web Bluetooth) -------------------- **/
   const HR_SERVICE = "heart_rate";
-  const HR_MEASUREMENT = "heart_rate_measurement"; // 0x2A37
+  const HR_MEASUREMENT = "heart_rate_measurement";
 
-  let hrState = {
-    device: null,
-    char: null,
-    bpm: null,
-    lastUpdate: null
-  };
+  let hrState = { device: null, char: null, bpm: null };
 
   function parseHR(dataView) {
     const flags = dataView.getUint8(0);
     const isUint16 = (flags & 0x01) === 0x01;
-
-    let offset = 1;
-    const bpm = isUint16 ? dataView.getUint16(offset, true) : dataView.getUint8(offset);
+    const bpm = isUint16 ? dataView.getUint16(1, true) : dataView.getUint8(1);
     return { bpm };
   }
 
-  function setHrStatus(text) {
-    els.hrStatus.textContent = text;
-  }
+  function setHrStatus(text) { els.hrStatus.textContent = text; }
 
   function updateHrUI() {
     els.hrBpm.textContent = hrState.bpm == null ? "—" : String(hrState.bpm);
@@ -654,23 +635,15 @@
   }
 
   async function connectHeartRate() {
-    if (!navigator.bluetooth) {
-      alert("Web Bluetooth not available in this browser.");
-      return;
-    }
-    if (!window.isSecureContext) {
-      alert("Web Bluetooth requires HTTPS. GitHub Pages should be fine—make sure the URL is https://");
-      return;
-    }
+    if (!navigator.bluetooth) { alert("Web Bluetooth not available in this browser."); return; }
+    if (!window.isSecureContext) { alert("Web Bluetooth requires HTTPS."); return; }
 
     try {
       setHrStatus("HR: requesting…");
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: [HR_SERVICE] }]
-      });
+      const device = await navigator.bluetooth.requestDevice({ filters: [{ services: [HR_SERVICE] }] });
 
       device.addEventListener("gattserverdisconnected", () => {
-        hrState = { device: null, char: null, bpm: null, lastUpdate: null };
+        hrState = { device: null, char: null, bpm: null };
         setHrStatus("HR: disconnected");
         els.hrConnectBtn.disabled = false;
         els.hrDisconnectBtn.disabled = true;
@@ -679,16 +652,13 @@
 
       setHrStatus("HR: connecting…");
       const server = await withTimeout(device.gatt.connect(), 8000, "GATT connect timed out (Polar app might still be connected).");
-
       const service = await withTimeout(server.getPrimaryService(HR_SERVICE), 6000, "Could not get Heart Rate service.");
-      const ch = await withTimeout(service.getCharacteristic(HR_MEASUREMENT), 6000, "Could not get HR measurement characteristic.");
+      const ch = await withTimeout(service.getCharacteristic(HR_MEASUREMENT), 6000, "Could not get HR characteristic.");
 
       await ch.startNotifications();
       ch.addEventListener("characteristicvaluechanged", (event) => {
-        const dv = event.target.value;
-        const { bpm } = parseHR(dv);
+        const { bpm } = parseHR(event.target.value);
         hrState.bpm = bpm;
-        hrState.lastUpdate = new Date().toLocaleTimeString();
         setHrStatus("HR: on");
         updateHrUI();
       });
@@ -709,10 +679,9 @@
   }
 
   function disconnectHeartRate() {
-    try {
-      if (hrState?.device?.gatt?.connected) hrState.device.gatt.disconnect();
-    } finally {
-      hrState = { device: null, char: null, bpm: null, lastUpdate: null };
+    try { if (hrState?.device?.gatt?.connected) hrState.device.gatt.disconnect(); }
+    finally {
+      hrState = { device: null, char: null, bpm: null };
       setHrStatus("HR: off");
       els.hrConnectBtn.disabled = false;
       els.hrDisconnectBtn.disabled = true;
@@ -733,6 +702,7 @@
     reloadBtn: document.getElementById("reloadBtn"),
 
     segmentDesc: document.getElementById("segmentDesc"),
+    targetNote: document.getElementById("targetNote"),
     countdown: document.getElementById("countdown"),
     fill: document.getElementById("fill"),
     posInfo: document.getElementById("posInfo"),
@@ -757,6 +727,8 @@
     zoneRange: document.getElementById("zoneRange"),
     zoneMarker: document.getElementById("zoneMarker"),
     zoneMarkerLine: document.getElementById("zoneMarkerLine"),
+    targetOverlay: document.getElementById("targetOverlay"),
+    ticks: document.getElementById("ticks"),
     z1: document.getElementById("z1"),
     z2: document.getElementById("z2"),
     z3: document.getElementById("z3"),
@@ -766,11 +738,11 @@
 
   const DEMO = `Warmup
 
-9m20s 50-75% (75-112w) FTP
+9m20s 50-75% (75-112w) FTP 120-130bpm
 Main set 3x
 
-15m 90% (135w) FTP
-5m 55% (82w) FTP
+15m 90% (135w) FTP 142-158 bpm
+5m 55% (82w) FTP 120 bpm
 Cooldown
 
 9m20s 50% (75w) FTP`;
@@ -787,13 +759,9 @@ Cooldown
 
   let lastSecondAnnounced = null;
 
-  function sumTotalMs(segs) {
-    return segs.reduce((a, s) => a + s.durationMs, 0);
-  }
+  function sumTotalMs(segs) { return segs.reduce((a, s) => a + s.durationMs, 0); }
   function computeElapsedBeforeIndex(segs, index) {
-    let s = 0;
-    for (let i = 0; i < index; i++) s += segs[i].durationMs;
-    return s;
+    let s = 0; for (let i = 0; i < index; i++) s += segs[i].durationMs; return s;
   }
 
   function beep(freq = 880, ms = 110) {
@@ -802,20 +770,17 @@ Cooldown
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
+      osc.connect(gain); gain.connect(ctx.destination);
       osc.frequency.value = freq;
       gain.gain.value = 0.05;
       osc.start();
       setTimeout(() => { osc.stop(); ctx.close(); }, ms);
-    } catch (_) {}
+    } catch {}
   }
 
   function vibrate(pattern) {
     if (!els.vibrateToggle.checked) return;
-    if (navigator.vibrate) {
-      try { navigator.vibrate(pattern); } catch (_) {}
-    }
+    if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch {} }
   }
 
   // Wake Lock
@@ -831,10 +796,9 @@ Cooldown
         wakeLock = await navigator.wakeLock.request("screen");
         wakeLock.addEventListener("release", () => { wakeLock = null; });
       } else if (wakeLock) {
-        await wakeLock.release();
-        wakeLock = null;
+        await wakeLock.release(); wakeLock = null;
       }
-    } catch (_) {
+    } catch {
       els.wakeLockToggle.checked = false;
       saveState({ wakeLock: false });
     }
@@ -887,6 +851,13 @@ Cooldown
     return (s.section ? `${s.section} — ` : "") + s.displayText;
   }
 
+  function updateTargetFromCurrentSegment() {
+    if (!segments.length) { updateTargetOverlay(null); return; }
+    const text = describeCurrent();
+    const target = parseTargetBpmRange(text);
+    updateTargetOverlay(target);
+  }
+
   function updateUI() {
     if (!segments.length) {
       els.segmentDesc.textContent = "Load a workout to begin.";
@@ -896,6 +867,7 @@ Cooldown
       els.metaLeft.textContent = "Segment —/—";
       els.metaRight.textContent = "Total —";
       els.list.innerHTML = "";
+      updateTargetOverlay(null);
       return;
     }
 
@@ -912,6 +884,7 @@ Cooldown
     els.metaRight.textContent = `Total ${formatMMSS(totalMs)}`;
 
     renderList();
+    updateTargetFromCurrentSegment();
   }
 
   function loadWorkout(fromText) {
@@ -1020,22 +993,10 @@ Cooldown
   /** -------------------- Wire up -------------------- **/
   els.loadBtn.addEventListener("click", () => loadWorkout());
   els.reloadBtn.addEventListener("click", () => loadWorkout());
+  els.clearBtn.addEventListener("click", () => { els.input.value = ""; saveState({ workoutText: "" }); });
 
-  els.clearBtn.addEventListener("click", () => {
-    els.input.value = "";
-    saveState({ workoutText: "" });
-  });
-
-  els.playBtn.addEventListener("click", () => {
-    if (!segments.length) return;
-    setRunning(!running);
-  });
-
-  els.nextBtn.addEventListener("click", () => {
-    setRunning(false);
-    nextSegment();
-  });
-
+  els.playBtn.addEventListener("click", () => { if (!segments.length) return; setRunning(!running); });
+  els.nextBtn.addEventListener("click", () => { setRunning(false); nextSegment(); });
   els.prevBtn.addEventListener("click", () => prevSegment());
   els.resetBtn.addEventListener("click", () => resetWorkout());
 
@@ -1044,17 +1005,15 @@ Cooldown
   els.beepToggle.addEventListener("change", () => saveState({ beep: els.beepToggle.checked }));
   els.countdownBeepToggle.addEventListener("change", () => saveState({ countdownBeep: els.countdownBeepToggle.checked }));
   els.vibrateToggle.addEventListener("change", () => saveState({ vibrate: els.vibrateToggle.checked }));
-
   els.wakeLockToggle.addEventListener("change", async () => {
     saveState({ wakeLock: els.wakeLockToggle.checked });
     if (running) await setWakeLock(els.wakeLockToggle.checked);
   });
 
-  // HR buttons
   els.hrConnectBtn.addEventListener("click", connectHeartRate);
   els.hrDisconnectBtn.addEventListener("click", disconnectHeartRate);
 
-  // Autosave workout text as you type/paste
+  // Autosave workout text
   let saveTimer = null;
   els.input.addEventListener("input", () => {
     clearTimeout(saveTimer);
@@ -1063,24 +1022,24 @@ Cooldown
 
   /** -------------------- Init -------------------- **/
   setZoneWidths();
+  renderTicks();
+  updateZoneUI(null);
+  updateTargetOverlay(null);
 
   const stored = loadState();
+  els.input.value = (typeof stored.workoutText === "string" && stored.workoutText.length) ? stored.workoutText : DEMO;
 
-  els.input.value = (typeof stored.workoutText === "string" && stored.workoutText.length)
-    ? stored.workoutText
-    : DEMO;
-
-  els.beepToggle.checked = stored.beep !== false; // default true
-  els.countdownBeepToggle.checked = stored.countdownBeep === true; // default false
-  els.vibrateToggle.checked = stored.vibrate !== false; // default true
-  els.wakeLockToggle.checked = stored.wakeLock === true; // default false
+  els.beepToggle.checked = stored.beep !== false;
+  els.countdownBeepToggle.checked = stored.countdownBeep === true;
+  els.vibrateToggle.checked = stored.vibrate !== false;
+  els.wakeLockToggle.checked = stored.wakeLock === true;
 
   setWorkoutMode(stored.workoutMode === true);
 
   setHrStatus("HR: not connected");
   updateHrUI();
+  els.hrDisconnectBtn.disabled = true;
 
-  // Auto-load so user can just hit Play
   loadWorkout(els.input.value);
 })();
 </script>
