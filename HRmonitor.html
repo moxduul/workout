@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>HR Test (Web Bluetooth)</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color-scheme: dark; }
+    body { margin: 0; padding: 16px; background:#0b0c10; color:#e8e8ea; padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+    .app { max-width: 720px; margin: 0 auto; display: grid; gap: 12px; }
+    .card { background:#12141b; border:1px solid #222635; border-radius: 14px; padding: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+    h1 { margin:0; font-size: 18px; font-weight: 800; letter-spacing:-0.2px; }
+    .row { display:flex; flex-wrap: wrap; gap: 10px; align-items:center; justify-content: space-between; }
+    button { background:#1f6feb; border:0; color:#fff; padding: 12px 14px; border-radius: 14px; font-weight: 800; font-size: 16px; cursor: pointer; }
+    button.secondary { background:#2a2f40; }
+    button.danger { background:#d73a49; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    .label { font-size: 12px; opacity: .75; text-transform: uppercase; letter-spacing: .06em; }
+    .big { font-variant-numeric: tabular-nums; font-size: clamp(56px, 12vw, 96px); font-weight: 900; line-height: 1; margin-top: 8px; }
+    .sub { margin-top: 10px; opacity: .85; font-size: 13px; line-height: 1.4; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    @media (max-width: 520px){ .grid { grid-template-columns: 1fr; } }
+    .kv { background:#0f1117; border:1px solid #23283a; border-radius: 12px; padding: 10px 12px; }
+    .kv .k { font-size: 12px; opacity:.75; }
+    .kv .v { font-variant-numeric: tabular-nums; font-size: 18px; font-weight: 800; margin-top: 6px; }
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+           font-size: 12px; background:#0f1117; border:1px solid #23283a; border-radius: 12px;
+           padding: 10px 12px; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow:auto; }
+    .pill { display:inline-flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 999px;
+            background:#0f1117; border:1px solid #23283a; font-size: 13px; opacity: .9; }
+    input[type="checkbox"]{ transform: translateY(1px) scale(1.05); }
+    .warn { color: #ffd479; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="row">
+      <h1>Heart Rate Test (Polar H10 via Web Bluetooth)</h1>
+      <span id="secureHint" class="pill"></span>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="label">Status</div>
+          <div id="status" style="margin-top:6px;font-weight:800;">Idle</div>
+        </div>
+        <div class="row" style="justify-content:flex-end;">
+          <button id="connectBtn">Connect</button>
+          <button id="disconnectBtn" class="danger" disabled>Disconnect</button>
+          <button id="clearLogBtn" class="secondary">Clear log</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <div class="label">Live BPM</div>
+        <div id="bpm" class="big">—</div>
+        <div class="sub">
+          <label class="pill"><input type="checkbox" id="vibrateToggle" checked /> Vibrate on update</label>
+          <label class="pill"><input type="checkbox" id="beepToggle" /> Beep on update</label>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="kv">
+          <div class="k">Device name</div>
+          <div class="v" id="deviceName">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">Last update</div>
+          <div class="v" id="lastUpdate">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">RR interval (ms)</div>
+          <div class="v" id="rr">—</div>
+        </div>
+        <div class="kv">
+          <div class="k">Battery (if available)</div>
+          <div class="v" id="battery">—</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <div class="label">Log</div>
+        <div id="log" class="log"></div>
+      </div>
+
+      <div class="sub warn" style="margin-top: 12px;">
+        Tip: Web Bluetooth usually needs HTTPS or localhost (secure context). If Connect does nothing or errors,
+        try serving this file via a local server app and open it in Chrome.
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const els = {
+    secureHint: document.getElementById("secureHint"),
+    status: document.getElementById("status"),
+    bpm: document.getElementById("bpm"),
+    rr: document.getElementById("rr"),
+    deviceName: document.getElementById("deviceName"),
+    lastUpdate: document.getElementById("lastUpdate"),
+    battery: document.getElementById("battery"),
+    connectBtn: document.getElementById("connectBtn"),
+    disconnectBtn: document.getElementById("disconnectBtn"),
+    clearLogBtn: document.getElementById("clearLogBtn"),
+    log: document.getElementById("log"),
+    vibrateToggle: document.getElementById("vibrateToggle"),
+    beepToggle: document.getElementById("beepToggle"),
+  };
+
+  function log(msg) {
+    const t = new Date().toLocaleTimeString();
+    els.log.textContent = `[${t}] ${msg}\n` + els.log.textContent;
+  }
+
+  function setStatus(s) {
+    els.status.textContent = s;
+    log(s);
+  }
+
+  function fmtTime(d = new Date()) {
+    return d.toLocaleTimeString();
+  }
+
+  function vibrate(pattern) {
+    if (!els.vibrateToggle.checked) return;
+    if (navigator.vibrate) {
+      try { navigator.vibrate(pattern); } catch {}
+    }
+  }
+
+  function beep(freq = 880, ms = 90) {
+    if (!els.beepToggle.checked) return;
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      gain.gain.value = 0.04;
+      osc.start();
+      setTimeout(() => { osc.stop(); ctx.close(); }, ms);
+    } catch {}
+  }
+
+  // --- BLE state ---
+  let device = null;
+  let hrChar = null;
+  let batteryChar = null;
+
+  function resetUI() {
+    els.bpm.textContent = "—";
+    els.rr.textContent = "—";
+    els.deviceName.textContent = "—";
+    els.lastUpdate.textContent = "—";
+    els.battery.textContent = "—";
+  }
+
+  // Parse Heart Rate Measurement (0x2A37)
+  // Flags:
+  // bit0: HR value format (0 = uint8, 1 = uint16)
+  // bit3: Energy Expended present
+  // bit4: RR-Interval present (may be multiple)
+  function parseHR(dataView) {
+    const flags = dataView.getUint8(0);
+    const isUint16 = (flags & 0x01) === 0x01;
+    const rrPresent = (flags & 0x10) === 0x10;
+
+    let offset = 1;
+    const bpm = isUint16 ? dataView.getUint16(offset, true) : dataView.getUint8(offset);
+    offset += isUint16 ? 2 : 1;
+
+    // Skip Energy Expended if present (2 bytes)
+    const energyPresent = (flags & 0x08) === 0x08;
+    if (energyPresent) offset += 2;
+
+    let rrMs = null;
+    if (rrPresent) {
+      // RR is in units of 1/1024s. There can be multiple; we take the first.
+      if (offset + 1 < dataView.byteLength) {
+        const rr1024 = dataView.getUint16(offset, true);
+        rrMs = Math.round(rr1024 * 1000 / 1024);
+      }
+    }
+
+    return { bpm, rrMs };
+  }
+
+  async function connect() {
+    if (!navigator.bluetooth) {
+      alert("Web Bluetooth is not available in this browser.");
+      return;
+    }
+
+    try {
+      setStatus("Requesting device…");
+      device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: ["heart_rate"] }],
+        optionalServices: ["battery_service"]
+      });
+
+      els.deviceName.textContent = device.name || "(unknown)";
+      device.addEventListener("gattserverdisconnected", onDisconnected);
+
+      setStatus("Connecting…");
+      const server = await device.gatt.connect();
+
+      // Heart Rate
+      const hrService = await server.getPrimaryService("heart_rate");
+      hrChar = await hrService.getCharacteristic("heart_rate_measurement");
+      await hrChar.startNotifications();
+      hrChar.addEventListener("characteristicvaluechanged", onHR);
+
+      // Battery (optional)
+      try {
+        const batService = await server.getPrimaryService("battery_service");
+        batteryChar = await batService.getCharacteristic("battery_level");
+        const val = await batteryChar.readValue();
+        els.battery.textContent = `${val.getUint8(0)}%`;
+      } catch {
+        els.battery.textContent = "—";
+      }
+
+      els.connectBtn.disabled = true;
+      els.disconnectBtn.disabled = false;
+      setStatus("Connected. Receiving heart rate…");
+    } catch (e) {
+      setStatus("Connection failed.");
+      log(`Error: ${e?.message || e}`);
+      // Make sure UI isn't stuck
+      els.connectBtn.disabled = false;
+      els.disconnectBtn.disabled = true;
+    }
+  }
+
+  function onHR(event) {
+    const dv = event.target.value;
+    const { bpm, rrMs } = parseHR(dv);
+
+    els.bpm.textContent = String(bpm);
+    els.lastUpdate.textContent = fmtTime();
+    els.rr.textContent = rrMs == null ? "—" : String(rrMs);
+
+    vibrate(20);
+    beep(880, 60);
+  }
+
+  function onDisconnected() {
+    setStatus("Disconnected.");
+    els.connectBtn.disabled = false;
+    els.disconnectBtn.disabled = true;
+    hrChar = null;
+    batteryChar = null;
+  }
+
+  async function disconnect() {
+    try {
+      setStatus("Disconnecting…");
+      if (device?.gatt?.connected) device.gatt.disconnect();
+    } finally {
+      device = null;
+      onDisconnected();
+      resetUI();
+    }
+  }
+
+  // Secure context hint
+  const secure = window.isSecureContext;
+  els.secureHint.textContent = secure
+    ? "Secure context: OK"
+    : "Not secure (Web Bluetooth may fail)";
+  if (!secure) els.secureHint.classList.add("warn");
+
+  els.connectBtn.addEventListener("click", connect);
+  els.disconnectBtn.addEventListener("click", disconnect);
+  els.clearLogBtn.addEventListener("click", () => { els.log.textContent = ""; });
+
+  resetUI();
+  log("Loaded. Tap Connect, choose your Polar H10.");
+})();
+</script>
+</body>
+</html>
