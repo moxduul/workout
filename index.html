@@ -227,7 +227,7 @@
     .workoutMode .list{display:none}
     .workoutMode .desc{font-size:clamp(19px,3.6vw,28px);font-weight:900}
     .workoutMode .bigTime{font-size:clamp(72px,12vw,118px)}
-    .workoutMode .bigLabel{display:none}
+    /*.workoutMode .bigLabel{display:none}*/
     .workoutMode .bigBox{padding:12px}
     .workoutMode .toggles{display:none}
 
@@ -966,7 +966,7 @@ Cooldown
       if (sec <= 3 && sec >= 1 && sec !== lastSecondAnnounced) {
         lastSecondAnnounced = sec;
         const freq = sec === 3 ? 520 : (sec === 2 ? 620 : 720);
-        beep(freq, 90);
+        beep(880, 90);
         vibrate(40);
       }
     }
