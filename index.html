@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Workout Timer v1.5</title>
+  <title>Workout Timer v1.6</title>
   <style>
     :root{
       color-scheme:dark;
@@ -248,7 +248,7 @@
       <div class="left">
         <span class="pill">
           <input type="checkbox" id="modeToggle" />
-          Workout mode 1.5
+          Workout mode 1.6
         </span>
       </div>
       <div class="left">
@@ -349,7 +349,7 @@
 <script>
 (() => {
   /** -------------------- Storage -------------------- **/
-  const STORAGE_KEY = "workout_timer_v1_4";
+  const STORAGE_KEY = "workout_timer_v1_6";
   function saveState(partial) {
     const current = loadState();
     const merged = { ...current, ...partial };
@@ -501,9 +501,6 @@
   }
 
   /** -------------------- Target HR parsing from text -------------------- **/
-  // Supports:
-  //  - 130bpm, 130 bpm, 130 bm
-  //  - 130-135bpm, 130-135 bpm, 130 – 135 bpm (en dash)
   function parseTargetBpmRange(text) {
     const t = String(text || "");
     const re = /\b(\d{2,3})\s*(?:[-–]\s*(\d{2,3}))?\s*(?:bpm|bm)\b/i;
@@ -517,26 +514,22 @@
     return { lo, hi };
   }
 
-  /** -------------------- HR Zones (aligned scale) -------------------- **/
-  // Scale now starts at 50 bpm, as requested.
-  const HR_MIN = 50;
+  /** -------------------- HR Zones (perfect alignment) -------------------- **/
+  // v1.6: scale starts at 80 bpm
+  const HR_MIN = 80;
   const HR_MAX = 175;
 
-  // Your boundaries (keeping your numbers, but within scale):
-  // Z1 grey:   50–106
-  // Z2 blue:   107–123
-  // Z3 green:  124–141
-  // Z4 orange: 142–158
-  // Z5 red:    159–175  (so 158 stays Z4; avoids overlap)
+  // Zone boundaries:
+  // Z1: 80–106, Z2: 107–123, Z3: 124–141, Z4: 142–158, Z5: 159–175
+  // We compute widths from edges so ticks and colors share the same geometry.
+  const EDGES = [80, 106, 123, 141, 158, 175]; // shown ticks and zone boundaries
   const ZONES = [
-    { key: "Z1", min: 50,  max: 106 },
-    { key: "Z2", min: 107, max: 123 },
-    { key: "Z3", min: 124, max: 141 },
-    { key: "Z4", min: 142, max: 158 },
-    { key: "Z5", min: 159, max: 175 },
+    { key: "Z1", min: 80,  max: 106, el: "z1" },
+    { key: "Z2", min: 107, max: 123, el: "z2" },
+    { key: "Z3", min: 124, max: 141, el: "z3" },
+    { key: "Z4", min: 142, max: 158, el: "z4" },
+    { key: "Z5", min: 159, max: 175, el: "z5" },
   ];
-
-  const TICKS = [50, 106, 123, 141, 158, 175];
 
   function pctForBpm(bpm) {
     const b = clamp(bpm, HR_MIN, HR_MAX);
@@ -550,22 +543,32 @@
   }
 
   function setZoneWidths() {
-    const total = (HR_MAX - HR_MIN);
-    // Use inclusive lengths so boundaries match ticks nicely.
-    // We’ll compute by raw span (max-min) and normalize on total span.
-    const w = (min, max) => ((max - min) / total) * 100;
+    const span = HR_MAX - HR_MIN;
 
-    // Each zone starts right after the previous boundary; this matches our min/max definitions.
-    els.z1.style.width = w(ZONES[0].min, ZONES[0].max) + "%";
-    els.z2.style.width = w(ZONES[1].min, ZONES[1].max) + "%";
-    els.z3.style.width = w(ZONES[2].min, ZONES[2].max) + "%";
-    els.z4.style.width = w(ZONES[3].min, ZONES[3].max) + "%";
-    els.z5.style.width = w(ZONES[4].min, ZONES[4].max) + "%";
+    // Compute each colored segment width from boundary-to-boundary using EDGES
+    // Segment 1: 80->106, 2:106->123, 3:123->141, 4:141->158, 5:158->175
+    const segWidths = [
+      (EDGES[1] - EDGES[0]) / span * 100,
+      (EDGES[2] - EDGES[1]) / span * 100,
+      (EDGES[3] - EDGES[2]) / span * 100,
+      (EDGES[4] - EDGES[3]) / span * 100,
+      (EDGES[5] - EDGES[4]) / span * 100,
+    ];
+
+    // Apply widths; ensure no cumulative drift from floating point by nudging last segment
+    const sumFirst4 = segWidths.slice(0,4).reduce((a,b)=>a+b,0);
+    segWidths[4] = Math.max(0, 100 - sumFirst4);
+
+    els.z1.style.width = segWidths[0] + "%";
+    els.z2.style.width = segWidths[1] + "%";
+    els.z3.style.width = segWidths[2] + "%";
+    els.z4.style.width = segWidths[3] + "%";
+    els.z5.style.width = segWidths[4] + "%";
   }
 
   function renderTicks() {
     els.ticks.innerHTML = "";
-    for (const bpm of TICKS) {
+    for (const bpm of EDGES) {
       const div = document.createElement("div");
       div.className = "tick";
       div.style.left = pctForBpm(bpm) + "%";
@@ -607,7 +610,7 @@
 
     els.targetOverlay.style.left = left + "%";
     els.targetOverlay.style.width = width + "%";
-    els.targetOverlay.style.opacity = 1;
+    els.targetOverlay.style.opacity = (width > 0 ? 1 : 0);
 
     els.targetNote.textContent = (target.lo === target.hi)
       ? `Target HR: ${target.lo} bpm`
@@ -617,7 +620,6 @@
   /** -------------------- Heart Rate (Web Bluetooth) -------------------- **/
   const HR_SERVICE = "heart_rate";
   const HR_MEASUREMENT = "heart_rate_measurement";
-
   let hrState = { device: null, char: null, bpm: null };
 
   function parseHR(dataView) {
@@ -627,8 +629,53 @@
     return { bpm };
   }
 
-  function setHrStatus(text) { els.hrStatus.textContent = text; }
+  const els = {
+    input: document.getElementById("input"),
+    loadBtn: document.getElementById("loadBtn"),
+    clearBtn: document.getElementById("clearBtn"),
 
+    playBtn: document.getElementById("playBtn"),
+    prevBtn: document.getElementById("prevBtn"),
+    nextBtn: document.getElementById("nextBtn"),
+    resetBtn: document.getElementById("resetBtn"),
+    reloadBtn: document.getElementById("reloadBtn"),
+
+    segmentDesc: document.getElementById("segmentDesc"),
+    targetNote: document.getElementById("targetNote"),
+    countdown: document.getElementById("countdown"),
+    fill: document.getElementById("fill"),
+    posInfo: document.getElementById("posInfo"),
+    metaLeft: document.getElementById("metaLeft"),
+    metaRight: document.getElementById("metaRight"),
+    list: document.getElementById("segmentsList"),
+
+    modeToggle: document.getElementById("modeToggle"),
+    beepToggle: document.getElementById("beepToggle"),
+    countdownBeepToggle: document.getElementById("countdownBeepToggle"),
+    vibrateToggle: document.getElementById("vibrateToggle"),
+    wakeLockToggle: document.getElementById("wakeLockToggle"),
+
+    // HR
+    hrStatus: document.getElementById("hrStatus"),
+    hrBpm: document.getElementById("hrBpm"),
+    hrConnectBtn: document.getElementById("hrConnectBtn"),
+    hrDisconnectBtn: document.getElementById("hrDisconnectBtn"),
+
+    // zones
+    zoneName: document.getElementById("zoneName"),
+    zoneRange: document.getElementById("zoneRange"),
+    zoneMarker: document.getElementById("zoneMarker"),
+    zoneMarkerLine: document.getElementById("zoneMarkerLine"),
+    targetOverlay: document.getElementById("targetOverlay"),
+    ticks: document.getElementById("ticks"),
+    z1: document.getElementById("z1"),
+    z2: document.getElementById("z2"),
+    z3: document.getElementById("z3"),
+    z4: document.getElementById("z4"),
+    z5: document.getElementById("z5"),
+  };
+
+  function setHrStatus(text) { els.hrStatus.textContent = text; }
   function updateHrUI() {
     els.hrBpm.textContent = hrState.bpm == null ? "—" : String(hrState.bpm);
     updateZoneUI(hrState.bpm);
@@ -690,52 +737,6 @@
   }
 
   /** -------------------- Player -------------------- **/
-  const els = {
-    input: document.getElementById("input"),
-    loadBtn: document.getElementById("loadBtn"),
-    clearBtn: document.getElementById("clearBtn"),
-
-    playBtn: document.getElementById("playBtn"),
-    prevBtn: document.getElementById("prevBtn"),
-    nextBtn: document.getElementById("nextBtn"),
-    resetBtn: document.getElementById("resetBtn"),
-    reloadBtn: document.getElementById("reloadBtn"),
-
-    segmentDesc: document.getElementById("segmentDesc"),
-    targetNote: document.getElementById("targetNote"),
-    countdown: document.getElementById("countdown"),
-    fill: document.getElementById("fill"),
-    posInfo: document.getElementById("posInfo"),
-    metaLeft: document.getElementById("metaLeft"),
-    metaRight: document.getElementById("metaRight"),
-    list: document.getElementById("segmentsList"),
-
-    modeToggle: document.getElementById("modeToggle"),
-    beepToggle: document.getElementById("beepToggle"),
-    countdownBeepToggle: document.getElementById("countdownBeepToggle"),
-    vibrateToggle: document.getElementById("vibrateToggle"),
-    wakeLockToggle: document.getElementById("wakeLockToggle"),
-
-    // HR
-    hrStatus: document.getElementById("hrStatus"),
-    hrBpm: document.getElementById("hrBpm"),
-    hrConnectBtn: document.getElementById("hrConnectBtn"),
-    hrDisconnectBtn: document.getElementById("hrDisconnectBtn"),
-
-    // zones
-    zoneName: document.getElementById("zoneName"),
-    zoneRange: document.getElementById("zoneRange"),
-    zoneMarker: document.getElementById("zoneMarker"),
-    zoneMarkerLine: document.getElementById("zoneMarkerLine"),
-    targetOverlay: document.getElementById("targetOverlay"),
-    ticks: document.getElementById("ticks"),
-    z1: document.getElementById("z1"),
-    z2: document.getElementById("z2"),
-    z3: document.getElementById("z3"),
-    z4: document.getElementById("z4"),
-    z5: document.getElementById("z5"),
-  };
-
   const DEMO = `Warmup
 
 9m20s 50-75% (75-112w) FTP 120-130bpm
@@ -750,13 +751,10 @@ Cooldown
   let segments = [];
   let idx = 0;
   let running = false;
-
   let segRemainingMs = 0;
   let lastTick = 0;
-
   let totalMs = 0;
   let elapsedBeforeCurrentMs = 0;
-
   let lastSecondAnnounced = null;
 
   function sumTotalMs(segs) { return segs.reduce((a, s) => a + s.durationMs, 0); }
@@ -965,7 +963,6 @@ Cooldown
       const sec = Math.max(0, Math.ceil(segRemainingMs / 1000));
       if (sec <= 3 && sec >= 1 && sec !== lastSecondAnnounced) {
         lastSecondAnnounced = sec;
-        const freq = sec === 3 ? 520 : (sec === 2 ? 620 : 720);
         beep(880, 90);
         vibrate(40);
       }
