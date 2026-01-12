@@ -248,7 +248,7 @@
       <div class="left">
         <span class="pill">
           <input type="checkbox" id="modeToggle" />
-          Workout mode TEST
+          Workout mode 1.5
         </span>
       </div>
       <div class="left">
@@ -772,7 +772,7 @@ Cooldown
       const gain = ctx.createGain();
       osc.connect(gain); gain.connect(ctx.destination);
       osc.frequency.value = freq;
-      gain.gain.value = 0.05;
+      gain.gain.value = 0.25;
       osc.start();
       setTimeout(() => { osc.stop(); ctx.close(); }, ms);
     } catch {}
